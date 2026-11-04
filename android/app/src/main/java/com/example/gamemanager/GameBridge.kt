@@ -396,6 +396,8 @@ class GameBridge(private val activity: Activity) {
         o.put("lastFg", MonitorService.lastFg)
         o.put("lastResult", MonitorService.lastResult)
         o.put("lastAction", MonitorService.lastAction)
+        o.put("lastEnforce", Enforcer.lastEnforceText)
+        o.put("enforceOk", Enforcer.lastEnforceOk)
         o.put("version", getVersion())
         o.put("detail", JSONObject(Guard.explainJson(activity)))
         o.toString()

@@ -20,6 +20,24 @@ object Enforcer {
     /** 拦截页是否正在显示，避免重复拉起 */
     @Volatile var blockShowing: Boolean = false
 
+    /** 自检用：最后一次"动手"到底做成了什么 */
+    @Volatile var lastEnforceText: String = "还没执行过拦截"
+    @Volatile var lastEnforceOk: Boolean = false
+
+    private fun nowText(): String = try {
+        java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+    } catch (e: Exception) { "" }
+
+    /**
+     * 由真正执行挂窗口的地方回报结果。
+     * OverlayBlocker.show() 是 main.post 异步的，若在这里先写"成功"，
+     * addView 失败时自检就会误报成功，家长查不出为什么没拦住。
+     */
+    fun recordEnforce(text: String, ok: Boolean) {
+        lastEnforceOk = ok
+        lastEnforceText = (if (ok) "" else "失败：") + text + " · " + nowText()
+    }
+
     private fun dpm(ctx: Context) =
         ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager
 
@@ -44,12 +62,15 @@ object Enforcer {
     }
 
     fun showBlock(ctx: Context, pkg: String) {
-        // 通道一（最稳）：有"显示在其他应用上层"权限 → 直接盖悬浮窗
+        // 通道一（最稳）：有"显示在其他应用上层"权限 → 直接盖悬浮窗。
+        // 成败由 OverlayBlocker 真正挂上窗口之后回报，这里不预先宣称成功。
         if (OverlayBlocker.canOverlay(ctx)) {
             OverlayBlocker.show(ctx, pkg)
-            blockShowing = true
             return
         }
+        // 没悬浮窗权限时判定了也盖不住，必须如实写进自检
+        lastEnforceOk = false
+        lastEnforceText = "缺悬浮窗权限，降级尝试 · " + pkg
         // 通道二：Activity（无障碍在前台时通常可拉起，纯后台服务可能被系统拦）
         if (blockShowing) return
         val i = Intent(ctx, BlockActivity::class.java).apply {
@@ -63,9 +84,12 @@ object Enforcer {
         try {
             ctx.startActivity(i)
             blockShowing = true
+            lastEnforceText = "拦截页 Activity · " + pkg + " · " + nowText()
         } catch (e: Exception) {
-            // 通道三：降级成通知，不崩、不锁屏
+            // 通道三：降级成通知，不崩、不锁屏；并释放冷却票据，下一轮立刻重试
             notifyBlocked(ctx, pkg)
+            lastEnforceText = "拦截页起不来，已发通知 · " + pkg
+            try { Guard.clearStrike(pkg) } catch (e2: Throwable) { }
         }
     }
 

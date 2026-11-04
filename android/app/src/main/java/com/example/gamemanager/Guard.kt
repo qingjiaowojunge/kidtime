@@ -21,7 +21,7 @@ import java.util.Locale
  * 设计原则（前几轮踩坑换来的）：
  * 1. 单一判定入口：Service / 无障碍 / 拦截页 都只问 Guard，不再各判一套。
  * 2. 前台感知：只有受管应用真在前台才可能动作；本应用、桌面、系统界面永不触发。
- * 3. 冷却：同一应用动手后 90 秒内不重复，杜绝连环弹。
+ * 3. 冷却：同一应用动手后 20 秒内不重复，杜绝连环弹，也别让一次失败变成长时间不设防。
  * 4. 可暂停：家长配置时全局暂停。
  * 5. 默认不锁屏：默认只拉拦截层。
  */
@@ -45,7 +45,8 @@ object Guard {
     private const val K_NOTIFY_DONE = "notify_done"
     private const val K_FOCUS_UNTIL = "focus_until"
 
-    private const val COOLDOWN_MS = 90_000L
+    /** 拦截失败时这个窗口就是"不设防时间"，90 秒太长，压到 20 秒 */
+    private const val COOLDOWN_MS = 20_000L
     private const val AUDIT_MAX = 40
 
     /** 单个应用的限额规则：工作日 / 周末（分钟） */

@@ -3,6 +3,49 @@
 用 **HTML / JS / CSS** 写应用，打包成 **Android APK** 装到手机上运行。
 应用本体就是 `index.html`（内联了全部 CSS/JS），安卓端只有一个极薄的 WebView 壳把它装进 APK 在手机里跑。
 
+## v3.3 稳定化：把「时间到了照样能玩」彻底堵住
+
+真机反馈：**时间已经到了，游戏还能打开、还能继续玩**。这不是界面或数据展示问题，是管控执行链某一环静默失效——之前每一处失败都是 `return`，界面上什么也看不出来。
+
+排查后按版本分三步收口：
+
+| 版本 | 修的是什么 |
+|---|---|
+| v3.1 | 把「为什么没拦住」变成可读：`MonitorService` 每轮记 `lastResult / lastFg / lastTickAt`，新增 `Guard.blockReason()` / `explainJson()` / `GameBridge.diag()` / `restartMonitor()`；「我的」页加「自检：为什么没拦住」，可一键复制 |
+| v3.2 | 修 `OverlayBlocker.show()` 的 stale root：`root != null` 不等于窗口还在屏幕上。系统摘掉窗口 token 后旧代码只更新文案、不再 `addView`，表现就是「拦过一次之后再也不拦」。现在检查 `isAttachedToWindow`，掉了就 `removeViewImmediate` 再重挂 |
+| **v3.3** | 把服务存活、开机恢复、事件驱动、失败重试、权限引导一次补齐 |
+
+### v3.3 具体改了什么
+
+| 失效点 | 修法 |
+|---|---|
+| 国产 ROM 杀掉前台服务后**再也没人拉回来** | 新增 `Watchdog.kt`：`setAndAllowWhileIdle()` 每 5 分钟确认 `MonitorService.alive`，死了就 `startForegroundService()` 拉回；每次触发先续下一次，链条不断 |
+| **重启手机后不打开 App 就彻底失管** | 新增 `RECEIVE_BOOT_COMPLETED` + `BootReceiver`，监听开机 / 包替换 / 快速开机，直接读 SharedPreferences 里的规则把服务拉起来，不需要打开界面 |
+| 只能靠 10 秒轮询，慢且容易被挂起 | 轮询压到 **5 秒**；无障碍服务改成**事件驱动**，窗口一切换当场判定；无障碍事件里若发现服务已死，顺手自愈 |
+| 一次拦截失败造成 **90 秒不设防** | 冷却票据从 90 秒压到 **20 秒**；拦截页 / Activity 起不来时 `Guard.clearStrike(pkg)` 立刻释放，下一轮马上重试 |
+| 拦截到底成没成功，界面上看不到 | `Enforcer.lastEnforceText / lastEnforceOk` 如实记录，`diag()` 输出 `lastEnforce / enforceOk`；自检结论会直接报「条件都齐，但最近一次拦截没成功」 |
+| 前台识别拿到的是**几十分钟前的旧包名** | `queryEvents` 在国产 ROM 省电 / Doze 下可能一条事件都不给，轮询会一直用旧值，判定「不在受管应用」→ 到点不拦，自检还会显示一个看似正常的旧包名。现在：无障碍事件实时同步进 `UsageUtil.noteForeground()`，3 秒内以它为准；事件为空且已知值超过 1 分钟没刷新时，用 `queryUsageStats` 的 `lastTimeUsed` 交叉校正一次 |
+| 拦截页还没挂上就先报「成功」 | `OverlayBlocker.show()` 是 `main.post` 异步的，原先 `Enforcer` 在调用后就写 `lastEnforceOk = true`，`addView` 失败时自检反而显示成功。现在改成由真正挂上窗口的地方 `Enforcer.recordEnforce()` 回报；挂失败还会 `clearStrike()` 释放冷却票据，下一轮立即重试 |
+| 家长不知道该开哪些权限 | 引导卡、手册、自检三处统一成「四项清单」，明确标注哪些必须、哪些强烈建议 |
+
+### 这次新增的权限（回答「有没有更好的权限可以加」）
+
+- **已加**：`RECEIVE_BOOT_COMPLETED`（普通权限，装完自动有，不需要家长点）。这是本轮唯一真正新增的权限。
+- **已有、但必须家长手动开**：`PACKAGE_USAGE_STATS`（使用情况访问）、`SYSTEM_ALERT_WINDOW`（显示在其他应用上层）。这两项不给，判定和拦截都无从谈起。
+- **已有、且强烈建议开**：无障碍服务（`BIND_ACCESSIBILITY_SERVICE`）、电池优化白名单（`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`）。前者改成事件驱动当场拦，后者降低被 ROM 杀后台的概率。
+- **不加** `SCHEDULE_EXACT_ALARM`：看门狗用非精确闹钟足够，没必要引入敏感权限。
+- **不启用设备管理员**：它只能 `lockNow()` 锁屏，不能真正禁用别的 App，而且会造成「删不掉」，之前已经踩过这个死锁。
+- **拿不到、也不假装能拿到**：真正让游戏图标点不开需要「设备所有者 / Device Owner」，只有公司统一配发或刷机的设备能拿到，普通手机上的第三方 App 不可能有。本应用做的是**到点盖一张退不出去的全屏拦截页**，孩子只能找家长要时间。
+
+### 装完 v3.3 家长要做的四件事
+
+1. 使用情况访问 —— **必须**
+2. 显示在其他应用上层 —— **必须**
+3. 无障碍服务 —— **强烈建议**
+4. 电池优化白名单 —— **强烈建议**（手机「设置 → 应用 → 时间约定 → 电池」设成「允许后台运行 / 不受限制」）
+
+设完到「我的 → 自检：为什么没拦住」点「重新检测」，看到**绿色结论**才算齐。若仍拦不住，点「复制检测结果」把整段文字发回来，按里面的 `lastResult` / `lastEnforce` 直接定位，不用再猜权限。
+
 ## v3.0 大改：界面重做 + 默认孩子端
 
 前两版解决的是"能不能用"，这一版解决"敢不敢给自己孩子用、家长看不看得懂"。

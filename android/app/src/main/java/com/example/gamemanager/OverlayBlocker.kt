@@ -78,9 +78,12 @@ object OverlayBlocker {
                 wm.addView(v, lp)
                 root = v
                 Enforcer.blockShowing = true
+                Enforcer.recordEnforce("悬浮拦截页 · " + pkg, true)
             } catch (e: Exception) {
                 root = null
                 Enforcer.blockShowing = false
+                Enforcer.recordEnforce("悬浮窗挂不上 · " + pkg, false)
+                try { Guard.clearStrike(pkg) } catch (e2: Throwable) { }
             }
         }
     }

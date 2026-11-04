@@ -278,7 +278,7 @@
         <div class="card" id="guideCard">
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M8 8h8M8 12h6"/></svg>四步就能用（家长看这里）</h3>
           <div class="gstep"><span class="gn">1</span><div><b>先给两个权限</b>
-            <div class="gd">点底部「我的」→ 依次点「授予悬浮窗权限」和「授予用量权限」。这两个不给，软件就是摆设，管不住任何东西。</div></div></div>
+            <div class="gd">点底部「我的」→ 依次点「授予悬浮窗权限」和「授予用量权限」。这两个不给，软件就是摆设。<b>再顺手把「开启无障碍」和「加入电池优化白名单」也点了</b>：前者到点当场拦，后者防止手机把监控清掉。「设备管理员」不要开。</div></div></div>
           <div class="gstep"><span class="gn">2</span><div><b>挑要管的游戏，填分钟</b>
             <div class="gd">点底部「应用」→ 在搜索框打游戏名 → 打开右边开关 → 填每天给几分钟（比如 40）。填完会自动保存，不用点"保存"。</div></div></div>
           <div class="gstep"><span class="gn">3</span><div><b>把手机给孩子</b>
@@ -371,15 +371,15 @@
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/></svg>系统能力授权</h3>
           <div class="perm-row"><span>显示在其他应用上层（拦截页必需）</span><span id="ovlState" class="perm-state no">未授予</span></div>
           <div class="perm-row"><span>使用情况访问（真实时长）</span><span id="usageState" class="perm-state no">未授予</span></div>
-          <div class="perm-row"><span>无障碍（退到桌面，可选）</span><span id="accState" class="perm-state no">未开启</span></div>
+          <div class="perm-row"><span>无障碍服务（强烈建议：到点立刻拦、服务被杀能自愈）</span><span id="accState" class="perm-state no">未开启</span></div>
           <div class="perm-row"><span>设备管理员（锁屏，可选；启用后须先"彻底解除"才能卸载）</span><span id="adminState" class="perm-state no">未启用</span></div>
-          <div class="perm-row"><span>后台运行（电池优化白名单）</span><span id="battState" class="perm-state no">未加入</span></div>
+          <div class="perm-row"><span>后台运行（电池优化白名单，强烈建议）</span><span id="battState" class="perm-state no">未加入</span></div>
           <button class="btn ghost sm" id="enableOverlay" style="margin-top:10px;">授予悬浮窗权限</button>
           <button class="btn ghost sm" id="enableUsage" style="margin-top:8px;">授予用量权限</button>
           <button class="btn ghost sm" id="enableAcc" style="margin-top:8px;">开启无障碍</button>
           <button class="btn ghost sm" id="enableAdmin" style="margin-top:8px;">启用设备管理员</button>
           <button class="btn ghost sm" id="enableBatt" style="margin-top:8px;">加入电池优化白名单</button>
-          <div class="note">只有「悬浮窗」和「用量访问」是必做的；无障碍和设备管理员只在你选了对应处理方式时才需要。</div>
+          <div class="note">「悬浮窗」「用量访问」是必做的；「无障碍」和「电池白名单」强烈建议开——前者让拦截从"最多等 5 秒"变成"当场拦"，后者防止系统把监控清掉。<br><b>诚实边界</b>：设备管理员只能锁屏，不能真正禁用游戏。要真禁用应用需要「设备所有者」权限，普通手机装不了，所以它默认关闭，也不推荐开。</div>
         </div>
 
         <div class="card">
@@ -684,7 +684,7 @@
     var dg=diagData(false);
     if(dg && dg.serviceAlive===false){
       pb.classList.remove('hidden');
-      pb.innerHTML='监控服务没在运行，现在**什么都不会拦**。点右边重启，并把「电池优化白名单」加上。<button class="btn ghost sm" style="margin-left:8px;" onclick="GameBridge.restartMonitor();setTimeout(function(){onNativeResumeSoft()},900)">重启监控</button>';
+      pb.innerHTML='监控服务没在运行，现在<b>什么都不会拦</b>。点右边重启，并把「电池优化白名单」加上。<button class="btn ghost sm" style="margin-left:8px;" onclick="GameBridge.restartMonitor();setTimeout(function(){onNativeResumeSoft()},900)">重启监控</button>';
       return;
     }
     pb.classList.add('hidden');
@@ -748,8 +748,12 @@
       cls='warn'; verdict='管控被暂停了，暂停期间完全不拦。回到「暂停 / 重置」点「立即恢复管控」。';
     } else if(d.tickAgo>60){
       cls='warn'; verdict='服务在，但已经 '+Math.round(d.tickAgo)+' 秒没检查了，可能被系统挂起。把电池白名单加上。';
+    } else if(d.lastEnforce && d.enforceOk===false && d.lastEnforce.indexOf('还没执行')<0){
+      cls='bad'; verdict='条件都齐，但最近一次拦截没成功：'+d.lastEnforce+'。点下面「复制检测结果」，把整段发回来，按这一行定位。';
+    } else if(!d.accOn){
+      cls='warn'; verdict='能拦，但只能靠 5 秒一次轮询，最长会晚 5 秒。强烈建议把「无障碍服务」打开，改成窗口一切换就当场判定。';
     } else {
-      cls='ok'; verdict='必要条件都齐了。最后一次检查在 '+Math.round(d.tickAgo)+' 秒前，结论：'+(d.lastResult||'—');
+      cls='ok'; verdict='必要条件都齐了，且开了无障碍（事件驱动，当场拦）。最后一次检查在 '+Math.round(d.tickAgo)+' 秒前，结论：'+(d.lastResult||'—');
     }
     box.className='diag-verdict '+cls;
     box.textContent=verdict;
@@ -761,9 +765,10 @@
     h+=drow('最后检查', d.tickAgo<0?'还没检查过':(Math.round(d.tickAgo)+' 秒前'), d.tickAgo<0?'no':(d.tickAgo>60?'mid':'ok'));
     h+=drow('最后识别到', d.lastFg?esc(nameOfPkg(d.lastFg)):('（空）'), d.lastFg?'':'mid');
     h+=drow('受管应用', (det.ruleCount||0)+' 个', det.ruleCount?'ok':'no');
-    h+=drow('无障碍（可选）', d.accOn?'已开启':'未开启', d.accOn?'ok':'');
-    h+=drow('电池白名单（建议开）', d.batteryOk?'已加入':'未加入', d.batteryOk?'ok':'mid');
+    h+=drow('无障碍（强烈建议）', d.accOn?'已开启':'未开启', d.accOn?'ok':'mid');
+    h+=drow('电池白名单（强烈建议）', d.batteryOk?'已加入':'未加入', d.batteryOk?'ok':'mid');
     if(d.lastAction) h+=drow('最近一次拦截', esc(d.lastAction), 'ok');
+    if(d.lastEnforce) h+=drow('最近一次处置', esc(d.lastEnforce), d.enforceOk?'ok':'no');
     if(rows) rows.innerHTML=h;
 
     if(apps){
@@ -789,6 +794,7 @@
     L.push('监控服务: '+(d.serviceAlive?'运行':'停了')+' | 最后检查: '+(d.tickAgo<0?'无':d.tickAgo+'s 前')+' | 最后前台: '+(d.lastFg||'-'));
     L.push('最后结论: '+(d.lastResult||'-'));
     L.push('最近拦截: '+(d.lastAction||'-'));
+    L.push('最近处置: '+(d.lastEnforce||'-'));
     L.push('受管: '+(det.ruleCount||0)+' 个 | 暂停: '+(det.paused?'是':'否')+' | 免打扰: '+(det.curfew?'是':'否'));
     (det.items||[]).forEach(function(it){
       L.push('  - '+nameOfPkg(it.pkg)+' 已用'+it.used+'/额度'+it.limit+' | '+(it.reason||''));

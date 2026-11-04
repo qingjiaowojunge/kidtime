@@ -22,36 +22,80 @@ object UsageUtil {
      */
     private var evCursor: Long = 0L
     @Volatile private var evFg: String = ""
+    /** 最近一次"确认"前台的时刻，用来判断 evFg 是不是已经陈旧到不能信 */
+    @Volatile private var evFgAt: Long = 0L
+
+    /**
+     * 无障碍服务收到窗口切换时同步过来。
+     * 它比 UsageEvents 实时得多：部分国产 ROM 在省电 / Doze 下 queryEvents 会一条事件都不给，
+     * 不同步的话轮询会一直拿着几十分钟前的旧包名，判定"不在受管应用"，到点也不拦，
+     * 而自检里还会显示一个看似正常的旧包名，把问题藏起来。
+     */
+    fun noteForeground(pkg: String) {
+        if (pkg.isEmpty()) return
+        evFg = pkg
+        evFgAt = System.currentTimeMillis()
+    }
 
     /**
      * 当前真实前台应用包名。
-     * 用 UsageEvents 增量回溯（首次回溯到今天 0 点），比 queryUsageStats 的 lastTimeUsed 准，
-     * 且不会每次重扫一整天事件（避免监控循环里反复做重活）。
+     * 优先用无障碍刚报过的实时值；否则用 UsageEvents 增量回溯（首次回溯到今天 0 点）；
+     * 若本轮一条前台事件都没有、且已知值已陈旧，再用 queryUsageStats 交叉校正一次。
      */
     @Synchronized
     fun foregroundPackage(ctx: Context): String {
         if (!hasUsagePermission(ctx)) return ""
         val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager ?: return evFg
         val now = System.currentTimeMillis()
+
+        // 3 秒内无障碍刚报过窗口切换：这是最可信的来源，别让一次陈旧的事件回溯覆盖它
+        if (evFg.isNotEmpty() && evFgAt > 0L && evFgAt <= now && now - evFgAt <= 3_000L) return evFg
+
         // 冷启动 / 时钟回拨 / 距上次查询过久 → 回溯到今天 0 点重建状态
         if (evCursor <= 0L || evCursor > now || now - evCursor > 10 * 60_000L) {
             evCursor = dayStartMs()
         }
+        var gotFg = false
         try {
-            val events = usm.queryEvents(evCursor, now) ?: return evFg
-            val e = android.app.usage.UsageEvents.Event()
-            while (events.hasNextEvent()) {
-                events.getNextEvent(e)
-                if (e.eventType == 1) {           // MOVE_TO_FOREGROUND / ACTIVITY_RESUMED
-                    val p = e.packageName
-                    if (!p.isNullOrEmpty()) evFg = p
+            val events = usm.queryEvents(evCursor, now)
+            if (events != null) {
+                val e = android.app.usage.UsageEvents.Event()
+                while (events.hasNextEvent()) {
+                    events.getNextEvent(e)
+                    if (e.eventType == 1) {       // MOVE_TO_FOREGROUND / ACTIVITY_RESUMED
+                        val p = e.packageName
+                        if (!p.isNullOrEmpty()) { evFg = p; gotFg = true }
+                    }
                 }
             }
             evCursor = now
+            if (gotFg) evFgAt = now
         } catch (e: Exception) {
             // 查事件失败就退回上一次已知结果，不要因此误判
         }
+
+        // queryEvents 在 Doze / 省电模式下可能返回空。此时若已知前台超过 1 分钟没刷新，
+        // 拿 queryUsageStats 的 lastTimeUsed 交叉校正一次，避免拿着旧包名永远不拦。
+        if (!gotFg && now - evFgAt > 60_000L) {
+            val guess = recentForegroundByStats(usm, now)
+            if (guess.isNotEmpty()) { evFg = guess; evFgAt = now }
+        }
         return evFg
+    }
+
+    /** queryUsageStats 兜底：取今天最后一次在前台、且就在刚才还在用的那个应用 */
+    private fun recentForegroundByStats(usm: UsageStatsManager, now: Long): String {
+        return try {
+            val list = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, dayStartMs(), now)
+                ?: emptyList()
+            var best = ""
+            var bestT = 0L
+            for (s in list) {
+                if (s.totalTimeInForeground <= 0L) continue
+                if (s.lastTimeUsed > bestT) { bestT = s.lastTimeUsed; best = s.packageName }
+            }
+            if (best.isNotEmpty() && bestT > 0L && now - bestT <= 60_000L) best else ""
+        } catch (e: Throwable) { "" }
     }
 
     /** 今天 00:00 的毫秒时间戳（本地时区） */

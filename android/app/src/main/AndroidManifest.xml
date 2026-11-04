@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- 开机自启：普通权限，装完自动有，不需要家长额外操作 -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_TYPE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission
@@ -43,6 +45,23 @@
             android:screenOrientation="portrait"
             android:taskAffinity="com.example.gamemanager.block"
             android:theme="@style/AppTheme" />
+
+        <!-- 开机 / 升级后自动把监控服务拉起来（否则重启手机就彻底失管） -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
+        <!-- 看门狗：每 5 分钟确认服务还活着，被杀就拉回 -->
+        <receiver
+            android:name=".WatchdogReceiver"
+            android:exported="false" />
 
         <receiver
             android:name=".AdminReceiver"

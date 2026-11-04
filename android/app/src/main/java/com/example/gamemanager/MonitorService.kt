@@ -17,7 +17,7 @@ import androidx.core.app.NotificationCompat
 /**
  * 前台监控服务。
  *
- * 职责只有一个：每 10 秒看一眼"此刻在前台的应用"，把判断交给 Guard，处置交给 Enforcer。
+ * 职责只有一个：每 5 秒看一眼"此刻在前台的应用"，把判断交给 Guard，处置交给 Enforcer。
  * 服务本身不做任何规则判断，也不感知限额数字——这样规则只有一处，不会两套逻辑打架。
  *
  * 附带一件事：在"剩余 N 分钟"时发一次提醒通知（每个应用每天一次）。
@@ -72,6 +72,7 @@ class MonitorService : Service() {
         }
         try { lastState = stateText() } catch (e: Throwable) { }
         alive = true
+        try { Watchdog.ensure(this) } catch (e: Throwable) { }
         loop()
     }
 
@@ -85,7 +86,7 @@ class MonitorService : Service() {
                 }
             }
             loop()
-        }, 10_000L)
+        }, 5_000L)
     }
 
     private fun tick() {
