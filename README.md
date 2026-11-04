@@ -173,8 +173,9 @@ WebView 的渲染进程是独立进程。内存紧张、或厂商 ROM 清理后�
 
 | 检查项 | 结果 |
 |---|---|
-| 产物 | `KidTime-v3.3-7.apk`，下载页徽标 `v3.3 (7)` |
-| 签名 | 固定 `gm-release.jks`（证书 DER 在 APK 内逐字节命中），**可直接覆盖安装，不必卸载** |
+| CI | run `41840503751` · build ✅ · pages ✅ · commit `59c4578` |
+| 产物 | `KidTime-v3.3-7.apk` · **2,115,483 字节** · sha256 `272f0e2a6b2f8fb82b979376f2e3e6200f4f4592ec5db24f43cea641f51d4c0e` · 下载页徽标 `v3.3 (7)` |
+| 签名 | 固定 `gm-release.jks`（899 字节证书 DER 在 APK 偏移 `2101912` 逐字节命中），**可直接覆盖安装，不必卸载** |
 | 包内 | `assets/index.html` 含自检面板与四项权限文案；dex 含 `Watchdog` / `BootReceiver` / `recordEnforce` / `noteForeground`；AXML 含 `SCHEDULE_EXACT_ALARM`、`RECEIVE_BOOT_COMPLETED`、`com.junge.kidtime` |
 | 下载页 | 返回 200、带 `no-store`、APK 的 `content-type` 为 `application/vnd.android.package-archive` |
 
