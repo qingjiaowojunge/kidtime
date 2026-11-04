@@ -498,4 +498,54 @@ object Guard {
         o.put("weekend", isWeekend())
         return o.toString()
     }
+
+    /* ---------- 自检：把"为什么没拦住"变成一句话 ---------- */
+
+    /**
+     * 带原因的判定。条件顺序必须与 isBlockedNow 完全一致，
+     * 否则自检面板会"说该拦、实际没拦"，比没有自检更误导人。
+     */
+    fun blockReason(ctx: Context, pkg: String): String {
+        if (rules[pkg] == null) return "不在受管清单（应用页没打开开关）"
+        if (isPausedNow()) return "管控已暂停，不拦"
+        if (focusActive()) return "应拦：专注模式"
+        if (inCurfew()) return "应拦：免打扰时段"
+        if (totalLimitMin > 0 && totalUsedMinutes(ctx) >= totalLimitMin) return "应拦：今日总时长已用完"
+        val base = baseLimitMinutes(pkg)
+        if (base <= 0) return "不拦：额度填的是 0（表示不限）"
+        val eff = base + bonus(ctx, pkg)
+        val used = (usageMs(ctx, pkg) / 60_000L).toInt()
+        return if (used >= eff)
+            "应拦：已用 " + used + " 分 / 额度 " + eff + " 分"
+        else
+            "不拦：还没到点（已用 " + used + " 分 / 额度 " + eff + " 分）"
+    }
+
+    /** 自检状态：规则 + 每个应用的数字 + 当前前台。给网页渲染，不含权限（权限在 Android 侧） */
+    fun explainJson(ctx: Context): String {
+        init(ctx)
+        val o = JSONObject()
+        val fg = try { UsageUtil.foregroundPackage(ctx) } catch (e: Exception) { "" }
+        o.put("fg", fg)
+        o.put("fgInList", fg.isNotEmpty() && rules.containsKey(fg))
+        o.put("ruleCount", rules.size)
+        o.put("paused", isPausedNow())
+        o.put("focus", focusActive())
+        o.put("curfew", inCurfew())
+        o.put("totalLimit", totalLimitMin)
+        o.put("totalUsed", totalUsedMinutes(ctx))
+        val items = JSONArray()
+        for ((p, r) in rules) {
+            val it = JSONObject()
+            it.put("pkg", p)
+            it.put("limit", effectiveLimitMinutes(ctx, p))
+            it.put("bonus", bonus(ctx, p))
+            it.put("used", (usageMs(ctx, p) / 60_000L).toInt())
+            it.put("blocked", isBlockedNow(ctx, p))
+            it.put("reason", blockReason(ctx, p))
+            items.put(it)
+        }
+        o.put("items", items)
+        return o.toString()
+    }
 }

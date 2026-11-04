@@ -29,6 +29,15 @@ class MonitorService : Service() {
         private const val NOTIF_ID_SERVICE = 1
         private const val NOTIF_ID_BLOCK = 2
         private const val NOTIF_ID_WARN = 3
+
+        /* ---------- 自检用的运行状态 ----------
+           出问题的时候，"为什么没拦住"必须能从界面上看见，
+           否则只能靠猜权限、猜后台，一轮轮试。 */
+        @Volatile var alive: Boolean = false
+        @Volatile var lastTickAt: Long = 0L
+        @Volatile var lastFg: String = ""
+        @Volatile var lastResult: String = "服务刚启动，还没检查"
+        @Volatile var lastAction: String = ""
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -62,6 +71,7 @@ class MonitorService : Service() {
             return
         }
         try { lastState = stateText() } catch (e: Throwable) { }
+        alive = true
         loop()
     }
 
@@ -79,18 +89,21 @@ class MonitorService : Service() {
     }
 
     private fun tick() {
+        lastTickAt = System.currentTimeMillis()
         // 通知栏文案先刷新：即使后面因为暂停/没权限提前返回，通知也应该是当前的
         try { refreshNotification() } catch (e: Throwable) { }
 
-        if (Guard.isPausedNow()) return
-        if (!Guard.hasRules()) return
-        if (!UsageUtil.hasUsagePermission(this)) return
+        if (Guard.isPausedNow()) { lastResult = "管控已暂停，本轮不拦"; return }
+        if (!Guard.hasRules()) { lastResult = "受管清单是空的，没东西可拦"; return }
+        if (!UsageUtil.hasUsagePermission(this)) { lastResult = "缺「使用情况访问」权限，看不到前台应用"; return }
 
         val fg = UsageUtil.foregroundPackage(this)
-        if (fg.isEmpty()) return
+        lastFg = fg
+        if (fg.isEmpty()) { lastResult = "识别不到前台应用"; return }
 
         // 家长打开了本应用 → 立刻撤掉拦截层，绝不能让家长自己被挡住
         if (fg == packageName) {
+            lastResult = "家长正在用本应用，暂不判定"
             OverlayBlocker.hide()
             return
         }
@@ -100,9 +113,18 @@ class MonitorService : Service() {
             if (Guard.shouldNotifyRemaining(this, fg)) notifyRemaining(fg)
         } catch (e: Throwable) { }
 
-        if (!Guard.shouldHandle(this, fg)) return
+        if (!Guard.shouldHandle(this, fg)) {
+            lastResult = Guard.blockReason(this, fg)
+            return
+        }
+        lastResult = "已判定该拦，正在弹出拦截页"
+        lastAction = "拦截 " + appLabel(fg) + " · " + nowText()
         Enforcer.enforce(this, fg)
     }
+
+    private fun nowText(): String = try {
+        java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+    } catch (e: Exception) { "" }
 
     private fun ensureChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -217,6 +239,7 @@ class MonitorService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        alive = false
         handler.removeCallbacksAndMessages(null)
         try { worker.shutdownNow() } catch (e: Throwable) { }
         super.onDestroy()

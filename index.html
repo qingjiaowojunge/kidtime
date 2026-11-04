@@ -223,6 +223,23 @@
   #pwModal .field{margin-bottom:0;text-align:center;letter-spacing:4px;font-size:18px;}
   #pwModal .mrow{display:flex;gap:10px;margin-top:14px;}
   #pwModal .mrow .btn{margin-top:0;flex:1;width:auto;}
+
+  /* 自检面板 */
+  .diag-verdict{border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.65;font-weight:600;margin-bottom:10px;}
+  .diag-verdict.ok{background:var(--success-bg);color:#1f5a3d;}
+  .diag-verdict.warn{background:var(--warning-bg);color:#8f5320;}
+  .diag-verdict.bad{background:var(--danger-bg);color:var(--danger);}
+  .drow{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;}
+  .drow:last-child{border-bottom:none;}
+  .drow .k{color:var(--muted);flex:none;}
+  .drow .v{text-align:right;font-weight:700;min-width:0;word-break:break-all;}
+  .drow .v.ok{color:var(--success);}
+  .drow .v.no{color:var(--danger);}
+  .drow .v.mid{color:var(--warning);}
+  .dapp{padding:9px 0;border-bottom:1px dashed var(--line);font-size:12.5px;line-height:1.7;}
+  .dapp:last-child{border-bottom:none;}
+  .dapp b{font-size:13.5px;}
+  .dapp .r{color:var(--muted);}
 </style>
 </head>
 <body>
@@ -391,6 +408,17 @@
           <div class="perm-row" style="margin-top:6px;"><span>快用完时提前提醒</span>
             <span class="numinline"><input type="number" min="0" max="60" id="notifyBefore" value="5"> 分前</span></div>
           <div class="note">填 0 关闭提醒。提醒每个应用每天只发一次。</div>
+        </div>
+
+        <div class="card" id="diagCard">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/><path d="M12 8v4M12 15.5v.01"/></svg>自检：为什么没拦住</h3>
+          <div id="diagVerdict" class="diag-verdict warn">正在检测…</div>
+          <div id="diagRows"></div>
+          <div id="diagApps" style="margin-top:10px;"></div>
+          <button class="btn" id="diagRun" style="margin-top:12px;">重新检测</button>
+          <button class="btn ghost sm" id="diagRestart" style="width:100%;margin-top:8px;">重启监控服务</button>
+          <button class="btn ghost sm" id="diagCopy" style="width:100%;margin-top:8px;">复制检测结果</button>
+          <div class="note">先让游戏跑到超时，再切回这里点「重新检测」——上面「最后识别到」和「最后一次检查」就是当时的真实结论。把复制出来的内容发给我，能直接定位断在哪一环。</div>
         </div>
 
         <div class="card">
@@ -653,7 +681,119 @@
       pb.innerHTML='未授予「显示在其他应用上层」权限，超额时弹不出拦截页（只会发一条通知）。<button class="btn ghost sm" style="margin-left:8px;" onclick="GameBridge.requestOverlayPermission()">去授予</button>';
       return;
     }
+    var dg=diagData(false);
+    if(dg && dg.serviceAlive===false){
+      pb.classList.remove('hidden');
+      pb.innerHTML='监控服务没在运行，现在**什么都不会拦**。点右边重启，并把「电池优化白名单」加上。<button class="btn ghost sm" style="margin-left:8px;" onclick="GameBridge.restartMonitor();setTimeout(function(){onNativeResumeSoft()},900)">重启监控</button>';
+      return;
+    }
     pb.classList.add('hidden');
+  }
+
+  /* ---------- 自检 ---------- */
+  var _diagCache=null, _diagAt=0;
+
+  /** 读一次原生自检（4 秒内复用，避免轮询里反复跨进程） */
+  function diagData(force){
+    if(!NATIVE) return null;
+    var now=Date.now();
+    if(!force && _diagCache && (now-_diagAt)<4000) return _diagCache;
+    var d=null;
+    try{ d=JSON.parse(GameBridge.diag()||'{}'); }catch(e){ d=null; }
+    if(d && typeof d.usagePerm==='undefined') d=null;
+    _diagCache=d; _diagAt=now;
+    return d;
+  }
+
+  function onNativeResumeSoft(){
+    try{ _diagCache=null; refreshBanners(); refreshPermStates(); }catch(e){}
+  }
+
+  function nameOfPkg(pkg){
+    for(var i=0;i<cfg.managedApps.length;i++){ if(cfg.managedApps[i].pkg===pkg) return cfg.managedApps[i].name; }
+    return pkg;
+  }
+  function drow(k,v,cls){
+    return '<div class="drow"><span class="k">'+k+'</span><span class="v '+(cls||'')+'">'+v+'</span></div>';
+  }
+
+  function diagRun(){
+    var box=document.getElementById('diagVerdict');
+    if(!box) return;
+    var rows=document.getElementById('diagRows'), apps=document.getElementById('diagApps');
+    if(!NATIVE){
+      box.className='diag-verdict warn';
+      box.textContent='网页预览模式：自检只能在真机上跑。';
+      if(rows) rows.innerHTML=''; if(apps) apps.innerHTML='';
+      return;
+    }
+    var d=diagData(true);
+    if(!d){
+      box.className='diag-verdict bad';
+      box.textContent='读不到原生数据：桥接没响应（这可能本身就是问题所在，重启一下应用）。';
+      if(rows) rows.innerHTML=''; if(apps) apps.innerHTML='';
+      return;
+    }
+    var det=d.detail||{}, items=det.items||[];
+    var cls, verdict;
+    if(!d.usagePerm){
+      cls='bad'; verdict='断在第一步：没给「使用情况访问」权限。软件看不到你在玩什么，所以永远不会拦。去上面「系统能力授权」把它授上。';
+    } else if(!d.overlayPerm){
+      cls='bad'; verdict='能看到你在玩，但盖不住游戏：缺「显示在其他应用上层」。判定出来了也只发一条通知，游戏照样能玩。';
+    } else if(d.serviceAlive===false){
+      cls='bad'; verdict='监控服务没在跑（多半被系统清了后台）。先点下面「重启监控服务」，再把「电池优化白名单」加上。';
+    } else if(!det.ruleCount){
+      cls='warn'; verdict='受管清单是空的：去「应用」页把要管的游戏开关打开、填上分钟数。';
+    } else if(det.paused){
+      cls='warn'; verdict='管控被暂停了，暂停期间完全不拦。回到「暂停 / 重置」点「立即恢复管控」。';
+    } else if(d.tickAgo>60){
+      cls='warn'; verdict='服务在，但已经 '+Math.round(d.tickAgo)+' 秒没检查了，可能被系统挂起。把电池白名单加上。';
+    } else {
+      cls='ok'; verdict='必要条件都齐了。最后一次检查在 '+Math.round(d.tickAgo)+' 秒前，结论：'+(d.lastResult||'—');
+    }
+    box.className='diag-verdict '+cls;
+    box.textContent=verdict;
+
+    var h='';
+    h+=drow('使用情况访问', d.usagePerm?'已授予':'未授予', d.usagePerm?'ok':'no');
+    h+=drow('显示在其他应用上层', d.overlayPerm?'已授予':'未授予', d.overlayPerm?'ok':'no');
+    h+=drow('监控服务', d.serviceAlive?'运行中':'未运行', d.serviceAlive?'ok':'no');
+    h+=drow('最后检查', d.tickAgo<0?'还没检查过':(Math.round(d.tickAgo)+' 秒前'), d.tickAgo<0?'no':(d.tickAgo>60?'mid':'ok'));
+    h+=drow('最后识别到', d.lastFg?esc(nameOfPkg(d.lastFg)):('（空）'), d.lastFg?'':'mid');
+    h+=drow('受管应用', (det.ruleCount||0)+' 个', det.ruleCount?'ok':'no');
+    h+=drow('无障碍（可选）', d.accOn?'已开启':'未开启', d.accOn?'ok':'');
+    h+=drow('电池白名单（建议开）', d.batteryOk?'已加入':'未加入', d.batteryOk?'ok':'mid');
+    if(d.lastAction) h+=drow('最近一次拦截', esc(d.lastAction), 'ok');
+    if(rows) rows.innerHTML=h;
+
+    if(apps){
+      if(!items.length){
+        apps.innerHTML='<div class="note">还没有受管应用。</div>';
+      } else {
+        var a='';
+        for(var i=0;i<items.length;i++){
+          var it=items[i];
+          a+='<div class="dapp"><b>'+esc(nameOfPkg(it.pkg))+'</b> <span class="r">已用 '+it.used+' 分 / 额度 '+(it.limit||0)+' 分</span><br><span class="r">'+esc(it.reason||'')+'</span></div>';
+        }
+        apps.innerHTML=a;
+      }
+    }
+  }
+
+  function diagText(){
+    var d=diagData(true); if(!d) return '自检读取失败';
+    var det=d.detail||{};
+    var L=[];
+    L.push('时间约定 自检 '+ (d.version||''));
+    L.push('使用情况访问: '+(d.usagePerm?'有':'无')+' | 悬浮窗: '+(d.overlayPerm?'有':'无')+' | 无障碍: '+(d.accOn?'有':'无')+' | 电池白名单: '+(d.batteryOk?'有':'无'));
+    L.push('监控服务: '+(d.serviceAlive?'运行':'停了')+' | 最后检查: '+(d.tickAgo<0?'无':d.tickAgo+'s 前')+' | 最后前台: '+(d.lastFg||'-'));
+    L.push('最后结论: '+(d.lastResult||'-'));
+    L.push('最近拦截: '+(d.lastAction||'-'));
+    L.push('受管: '+(det.ruleCount||0)+' 个 | 暂停: '+(det.paused?'是':'否')+' | 免打扰: '+(det.curfew?'是':'否'));
+    (det.items||[]).forEach(function(it){
+      L.push('  - '+nameOfPkg(it.pkg)+' 已用'+it.used+'/额度'+it.limit+' | '+(it.reason||''));
+    });
+    return L.join('\n');
   }
 
   /* ---------- 权限状态 ---------- */
@@ -1019,6 +1159,21 @@
   document.getElementById('guideHide').onclick=function(){
     lsSet(GUIDE_KEY,'1'); renderGuide(); toast('已收起，可在「我的」里再调出来');
   };
+  /* ---------- 自检按钮 ---------- */
+  document.getElementById('diagRun').onclick=function(){ diagRun(); };
+  document.getElementById('diagRestart').onclick=function(){
+    var ok=false;
+    try{ ok=GameBridge.restartMonitor(); }catch(e){}
+    toast(ok?'已请求重启监控服务':'重启失败，去看系统里的后台限制');
+    setTimeout(function(){ onNativeResumeSoft(); diagRun(); }, 1000);
+  };
+  document.getElementById('diagCopy').onclick=function(){
+    var t='';
+    try{ t=diagText(); }catch(e){}
+    if(!t){ toast('读取失败'); return; }
+    try{ if(NATIVE) GameBridge.copyText(t); }catch(e){}
+  };
+
   document.getElementById('guideShow').onclick=function(){
     lsSet(GUIDE_KEY,'0'); renderGuide();
     var tab=document.querySelector('#parentView .tab[data-page="overview"]'); if(tab) tab.click();
@@ -1035,6 +1190,7 @@
       document.querySelectorAll('#parentView .page').forEach(function(pg){pg.classList.remove('active');});
       document.getElementById('p-'+t.dataset.page).classList.add('active');
       if(t.dataset.page==='apps') loadApps();
+      if(t.dataset.page==='me') diagRun();
       if(t.dataset.page==='overview'){ renderOverview(); renderRank(); renderFocus(true); }
       if(t.dataset.page==='stats') renderStats();
       if(t.dataset.page==='me'){ refreshPermStates(); renderAudit(); renderVerLine(); }
@@ -1274,7 +1430,7 @@
     if(!document.getElementById('childView').classList.contains('hidden')) renderKid();
     if(document.getElementById('parentView') && !document.getElementById('parentView').classList.contains('hidden')){
       var ap=document.querySelector('#parentView .tab.active');
-      if(ap){ var p=ap.dataset.page; if(p==='overview'){ renderOverview(); renderRank(); } if(p==='stats') renderStats(); if(p==='apps') renderAppList(); }
+      if(ap){ var p=ap.dataset.page; if(p==='overview'){ renderOverview(); renderRank(); } if(p==='stats') renderStats(); if(p==='apps') renderAppList(); if(p==='me') diagRun(); }
       refreshPermStates();
     }
     refreshBanners(); refreshGuardBar();

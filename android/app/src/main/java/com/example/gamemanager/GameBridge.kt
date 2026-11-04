@@ -11,6 +11,7 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
 import android.webkit.JavascriptInterface
+import org.json.JSONObject
 import android.widget.Toast
 
 /**
@@ -372,6 +373,39 @@ class GameBridge(private val activity: Activity) {
         val pi = activity.packageManager.getPackageInfo(activity.packageName, 0)
         val code = if (android.os.Build.VERSION.SDK_INT >= 28) pi.longVersionCode else pi.versionCode.toLong()
         "v${pi.versionName ?: "?"} ($code)"
+    }
+
+    /* ---------- 自检 ---------- */
+
+    /**
+     * 一次性返回"现在到底哪一环断了"。
+     * 网页那边不用连调五六个方法，也就不会出现"读到一半状态变了"的误判。
+     */
+    @JavascriptInterface
+    fun diag(): String = safe("{}") {
+        val o = JSONObject()
+        o.put("usagePerm", UsageUtil.hasUsagePermission(activity))
+        o.put("overlayPerm", OverlayBlocker.canOverlay(activity))
+        o.put("accOn", isAccessibilityOn())
+        o.put("adminOn", isAdminActive())
+        o.put("batteryOk", isIgnoringBatteryOptimizations())
+        o.put("serviceAlive", MonitorService.alive)
+        val ago = if (MonitorService.lastTickAt <= 0L) -1L
+        else (System.currentTimeMillis() - MonitorService.lastTickAt) / 1000L
+        o.put("tickAgo", ago)
+        o.put("lastFg", MonitorService.lastFg)
+        o.put("lastResult", MonitorService.lastResult)
+        o.put("lastAction", MonitorService.lastAction)
+        o.put("version", getVersion())
+        o.put("detail", JSONObject(Guard.explainJson(activity)))
+        o.toString()
+    }
+
+    /** 服务被系统清掉时，家长点一下就能拉回来 */
+    @JavascriptInterface
+    fun restartMonitor(): Boolean = safe(false) {
+        startMonitorInternal()
+        true
     }
 
     /* ---------- Intent 收口 ---------- */
