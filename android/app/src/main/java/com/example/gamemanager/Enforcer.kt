@@ -1,8 +1,10 @@
 package com.example.gamemanager
 
+import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.admin.DevicePolicyManager
+import android.os.Build
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -72,7 +74,8 @@ object Enforcer {
         lastEnforceOk = false
         lastEnforceText = "缺悬浮窗权限，降级尝试 · " + pkg
         // 通道二：Activity（无障碍在前台时通常可拉起，纯后台服务可能被系统拦）
-        if (blockShowing) return
+        // 不再用全局 blockShowing 做守卫：它可能残留 true（悬浮窗权限被撤销 / ROM 收回
+        // 窗口 token），会让降级通道永久不拦。CLEAR_TOP|SINGLE_TOP 已经能防重复拉起。
         val i = Intent(ctx, BlockActivity::class.java).apply {
             addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -96,6 +99,14 @@ object Enforcer {
     private fun notifyBlocked(ctx: Context, pkg: String) {
         try {
             val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
+            // 服务可能还没建过这个 channel，Android O+ 会静默丢掉降级通知
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                try {
+                    nm.createNotificationChannel(
+                        NotificationChannel("game_monitor", "游戏计时", NotificationManager.IMPORTANCE_LOW)
+                    )
+                } catch (e: Throwable) { }
+            }
             val pi = PendingIntent.getActivity(
                 ctx, 2,
                 Intent(ctx, BlockActivity::class.java)

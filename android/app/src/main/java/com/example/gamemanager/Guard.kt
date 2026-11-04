@@ -5,6 +5,7 @@ import android.content.Intent
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
+import java.util.concurrent.ConcurrentHashMap
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -66,7 +67,7 @@ object Guard {
     /** 专注模式结束时间戳（0 = 未开启）。专注期内受管应用一律拦，不看额度。 */
     @Volatile private var focusUntil: Long = 0L
 
-    private val strikes = HashMap<String, Long>()
+    private val strikes = ConcurrentHashMap<String, Long>()
     private var homePkgs: Set<String> = emptySet()
     private var cacheMap: Map<String, Long> = emptyMap()
     private var cacheAt: Long = 0L
@@ -445,7 +446,9 @@ object Guard {
         if (!isBlockedNow(ctx, pkg)) return false
         val now = System.currentTimeMillis()
         val next = strikes[pkg] ?: 0L
-        if (now < next) return false
+        // 冷却只在"拦截层还真的在显示"时有效。层已被收掉（点了回桌面 / 系统摘掉窗口
+        // token）就必须立刻重新布防，否则会留下 20 秒随便玩的自由窗口。
+        if (now < next && Enforcer.blockShowing) return false
         strikes[pkg] = now + COOLDOWN_MS
         audit(ctx, "block", pkg, 0)
         return true
@@ -503,12 +506,18 @@ object Guard {
     /* ---------- 自检：把"为什么没拦住"变成一句话 ---------- */
 
     /**
-     * 带原因的判定。条件顺序必须与 isBlockedNow 完全一致，
+     * 带原因的判定。前置条件的顺序必须与 shouldHandle 完全一致（含暂停、忽略包、冷却），
      * 否则自检面板会"说该拦、实际没拦"，比没有自检更误导人。
      */
     fun blockReason(ctx: Context, pkg: String): String {
-        if (rules[pkg] == null) return "不在受管清单（应用页没打开开关）"
+        init(ctx)
         if (isPausedNow()) return "管控已暂停，不拦"
+        if (isIgnoredPackage(ctx, pkg)) return "不拦：系统界面 / 本应用，忽略"
+        if (rules[pkg] == null) return "不在受管清单（应用页没打开开关）"
+        val now = System.currentTimeMillis()
+        val next = strikes[pkg] ?: 0L
+        if (now < next && Enforcer.blockShowing)
+            return "冷却中：拦截页还在显示，" + ((next - now) / 1000L + 1) + " 秒后复查"
         if (focusActive()) return "应拦：专注模式"
         if (inCurfew()) return "应拦：免打扰时段"
         if (totalLimitMin > 0 && totalUsedMinutes(ctx) >= totalLimitMin) return "应拦：今日总时长已用完"

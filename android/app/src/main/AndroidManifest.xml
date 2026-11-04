@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- 开机自启：普通权限，装完自动有，不需要家长额外操作 -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- 精确闹钟：安装即授予（Android 13+ 用户可在「闹钟和提醒」里关闭，关了会自动退回非精确）。
+         它是 Android 12+ 允许从后台拉起前台服务的少数豁免，让看门狗真能把被杀的监控拉回来 -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_TYPE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission

@@ -194,6 +194,8 @@ class BlockActivity : Activity() {
 
     override fun onDestroy() {
         Enforcer.blockShowing = false
+        // 拦截页一消失就恢复布防，别留下 20 秒"随便玩"的自由窗口
+        try { Guard.clearStrike(pkg) } catch (e: Throwable) { }
         super.onDestroy()
     }
 }

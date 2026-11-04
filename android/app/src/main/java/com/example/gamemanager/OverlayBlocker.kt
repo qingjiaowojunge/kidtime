@@ -33,7 +33,7 @@ object OverlayBlocker {
 
     private val main = Handler(Looper.getMainLooper())
     private var root: View? = null
-    private var currentPkg: String = ""
+    @Volatile private var currentPkg: String = ""
 
     fun canOverlay(ctx: Context): Boolean =
         try { Settings.canDrawOverlays(ctx) } catch (e: Exception) { false }
@@ -49,10 +49,9 @@ object OverlayBlocker {
                 // 我们的静态引用还在、窗口却已经没了。此时若按"已显示"直接 return，
                 // 之后**永远**不会再挂上去 —— 表现就是"时间到了却照样能玩"。
                 val cur = root
-                if (cur != null && cur.isAttachedToWindow) {
-                    updateTexts(ctx)
-                    return@post
-                }
+                // 即使 isAttachedToWindow 仍为 true，窗口也可能被 ROM 压到全屏游戏下面：
+                // 还挂着、却看不见。统一走"先摘再挂"，每次都重新置顶，
+                // 不做"只更新文案"的短路，否则遮罩会静默变成看得见下层游戏。
                 if (cur != null) {
                     try {
                         val wm0 = cur.context.applicationContext
@@ -89,15 +88,21 @@ object OverlayBlocker {
     }
 
     fun hide() {
+        val pkg = currentPkg
         main.post {
-            val v = root ?: return@post
+            val v = root
             root = null
             Enforcer.blockShowing = false
-            try {
-                val wm = v.context.applicationContext
-                    .getSystemService(Context.WINDOW_SERVICE) as WindowManager
-                wm.removeViewImmediate(v)
-            } catch (e: Throwable) { }
+            if (v != null) {
+                try {
+                    val wm = v.context.applicationContext
+                        .getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                    wm.removeViewImmediate(v)
+                } catch (e: Throwable) { }
+            }
+            // 拦截层一消失就恢复布防：孩子点「回到桌面」后若票据还在，
+            // 接下来 20 秒重开游戏会被直接放行 —— 这正是"到点了还能继续玩"的来源。
+            if (pkg.isNotEmpty()) try { Guard.clearStrike(pkg) } catch (e: Throwable) { }
         }
     }
 
@@ -246,7 +251,7 @@ object OverlayBlocker {
             .create()
 
         dlg.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
-        dlg.show()
+        try { dlg.show() } catch (e: Throwable) { }
     }
 
     private fun askPassword(ctx: Context, minutes: Int) {
@@ -278,7 +283,7 @@ object OverlayBlocker {
 
         // 服务没有 Activity 窗口，必须显式指定悬浮窗类型，否则会崩
         dlg.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
-        dlg.show()
+        try { dlg.show() } catch (e: Throwable) { }
     }
 
     private fun goHome(ctx: Context) {

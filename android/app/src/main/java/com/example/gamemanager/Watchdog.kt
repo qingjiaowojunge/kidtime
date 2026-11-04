@@ -15,7 +15,8 @@ import android.os.SystemClock
  * 直接杀掉前台服务，而且不会主动告知。以前一旦被杀就再也没人管，
  * 表现就是"时间到了照样能玩"。加上电池优化白名单后概率降低，但仍不能保证。
  *
- * 只用非精确闹钟，不需要 SCHEDULE_EXACT_ALARM 这类敏感权限，也不需要联网。
+ * 优先用精确闹钟（SCHEDULE_EXACT_ALARM 是普通权限、装完自动授予），因为它是 Android 12+
+ * 少数允许从后台拉起前台服务的豁免；拿不到该权限就退回非精确闹钟，链条不断。不需要联网。
  */
 object Watchdog {
     private const val ACTION = "com.junge.kidtime.WATCHDOG"
@@ -32,22 +33,30 @@ object Watchdog {
     fun ensure(ctx: Context) {
         try {
             val am = ctx.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
-            am.setAndAllowWhileIdle(
-                AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                SystemClock.elapsedRealtime() + INTERVAL,
-                pending(ctx)
-            )
+            val at = SystemClock.elapsedRealtime() + INTERVAL
+            // 精确闹钟是 Android 12+ 少数允许从后台启动前台服务的豁免场景之一。
+            // 拿不到该权限（用户在设置里关了「闹钟和提醒」）就退回非精确，链条不断。
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && am.canScheduleExactAlarms()) {
+                am.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, at, pending(ctx))
+            } else {
+                am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, at, pending(ctx))
+            }
         } catch (e: Throwable) { }
     }
 
-    /** Android 12+ 从后台起前台服务可能抛异常，必须兜住再降级 */
+    /** Android 12+ 从后台起前台服务可能抛异常，必须兜住、降级，而且不许静默吞掉 */
     fun startService(ctx: Context) {
         val i = Intent(ctx, MonitorService::class.java)
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ctx.startForegroundService(i)
             else ctx.startService(i)
         } catch (e: Throwable) {
-            try { ctx.startService(i) } catch (e2: Throwable) { }
+            try {
+                ctx.startService(i)
+            } catch (e2: Throwable) {
+                MonitorService.lastResult =
+                    "后台拉起监控服务被系统拒绝（" + e2.javaClass.simpleName + "）：请加电池白名单/自启动，或打开一次本应用"
+            }
         }
     }
 }
@@ -58,7 +67,10 @@ class WatchdogReceiver : BroadcastReceiver() {
             Watchdog.ensure(ctx)              // 先续上下一次，别让链条断掉
             Guard.init(ctx)
             if (!Guard.hasRules()) return     // 没配置就别起服务，省电
-            if (!MonitorService.alive) Watchdog.startService(ctx)
+            if (!MonitorService.alive) {
+                MonitorService.lastResult = "看门狗发现监控服务已停，正在拉回"
+                Watchdog.startService(ctx)
+            }
         } catch (e: Throwable) { }
     }
 }

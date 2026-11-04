@@ -27,13 +27,18 @@
 | 前台识别拿到的是**几十分钟前的旧包名** | `queryEvents` 在国产 ROM 省电 / Doze 下可能一条事件都不给，轮询会一直用旧值，判定「不在受管应用」→ 到点不拦，自检还会显示一个看似正常的旧包名。现在：无障碍事件实时同步进 `UsageUtil.noteForeground()`，3 秒内以它为准；事件为空且已知值超过 1 分钟没刷新时，用 `queryUsageStats` 的 `lastTimeUsed` 交叉校正一次 |
 | 拦截页还没挂上就先报「成功」 | `OverlayBlocker.show()` 是 `main.post` 异步的，原先 `Enforcer` 在调用后就写 `lastEnforceOk = true`，`addView` 失败时自检反而显示成功。现在改成由真正挂上窗口的地方 `Enforcer.recordEnforce()` 回报；挂失败还会 `clearStrike()` 释放冷却票据，下一轮立即重试 |
 | 家长不知道该开哪些权限 | 引导卡、手册、自检三处统一成「四项清单」，明确标注哪些必须、哪些强烈建议 |
+| **拦过一次之后 20 秒随便玩**（最可能是真机根因） | 原实现 `shouldHandle` 一通过就占 20 秒冷却票据，但孩子点「回到桌面」收掉拦截层时票据没释放，重开游戏被直接放行。现在冷却**只在拦截层真的还在显示时才生效**（`Enforcer.blockShowing`），并在 `OverlayBlocker.hide()` / `BlockActivity.onDestroy()` 主动 `clearStrike()` 双保险，层一消失立刻恢复布防 |
+| 自检报「该拦」却没动手（假绿灯） | `blockReason()` 原先只对齐 `isBlockedNow`，漏了暂停/忽略包/**冷却中**三道前置，冷却放行时照样返回「应拦」。现在前置顺序与 `shouldHandle` 完全一致，冷却中如实显示「拦截页还在显示，N 秒后复查」 |
+| 悬浮窗「挂着却看不见」 | 原 stale-root 修复只在 `isAttachedToWindow == false` 时重建；窗口被 ROM 压到全屏游戏下面但仍是 attached 时只更新文案、不重新置顶。现在每次都先摘再挂，强制重新置顶 |
+| 无障碍事件变稀疏 | `onServiceConnected` 原来 new 一个空 `AccessibilityServiceInfo` 整体覆盖 XML，丢掉 `canRetrieveWindowContent`/`settingsActivity`/flags。现在基于已加载配置增量修改，并补 `TYPE_WINDOW_CONTENT_CHANGED` 兜底（1 秒节流） |
+| 并发下票据清不掉 / 串包 | `strikes` 改为 `ConcurrentHashMap`，`currentPkg` 加 `@Volatile`；降级通道不再用残留的 `blockShowing` 做守卫；`startForeground` 失败和看门狗拉起被拒都会写进 `lastResult`，不再静默 |
 
 ### 这次新增的权限（回答「有没有更好的权限可以加」）
 
-- **已加**：`RECEIVE_BOOT_COMPLETED`（普通权限，装完自动有，不需要家长点）。这是本轮唯一真正新增的权限。
+- **已加** `RECEIVE_BOOT_COMPLETED`：普通权限，装完自动有，不需要家长点。用于开机/升级后自动恢复监控。
+- **已加** `SCHEDULE_EXACT_ALARM`（复核后补）：普通权限，装完自动授予、家长不用点。它是 Android 12+ 少数允许**从后台启动前台服务**的豁免场景——审查发现纯 `setAndAllowWhileIdle` 在 Doze 下可能十几分钟才触发，且从后台起 FGS 会被系统直接拒绝，服务被杀就拉不回来。现在优先用精确闹钟，拿不到该权限（用户在「闹钟和提醒」里关了）自动退回非精确，链条不断。
 - **已有、但必须家长手动开**：`PACKAGE_USAGE_STATS`（使用情况访问）、`SYSTEM_ALERT_WINDOW`（显示在其他应用上层）。这两项不给，判定和拦截都无从谈起。
 - **已有、且强烈建议开**：无障碍服务（`BIND_ACCESSIBILITY_SERVICE`）、电池优化白名单（`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`）。前者改成事件驱动当场拦，后者降低被 ROM 杀后台的概率。
-- **不加** `SCHEDULE_EXACT_ALARM`：看门狗用非精确闹钟足够，没必要引入敏感权限。
 - **不启用设备管理员**：它只能 `lockNow()` 锁屏，不能真正禁用别的 App，而且会造成「删不掉」，之前已经踩过这个死锁。
 - **拿不到、也不假装能拿到**：真正让游戏图标点不开需要「设备所有者 / Device Owner」，只有公司统一配发或刷机的设备能拿到，普通手机上的第三方 App 不可能有。本应用做的是**到点盖一张退不出去的全屏拦截页**，孩子只能找家长要时间。
 

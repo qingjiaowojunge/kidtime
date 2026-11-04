@@ -67,6 +67,7 @@ class MonitorService : Service() {
         }
 
         if (!started) {
+            lastResult = "前台服务启动失败（startForeground 两次都抛异常），管控不会生效；请点「重启监控服务」并加上电池白名单"
             stopSelf()
             return
         }

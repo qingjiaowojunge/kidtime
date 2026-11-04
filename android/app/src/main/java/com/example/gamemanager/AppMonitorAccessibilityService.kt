@@ -39,12 +39,21 @@ class AppMonitorAccessibilityService : AccessibilityService() {
     }
 
     private val handler = Handler(Looper.getMainLooper())
+    private var lastContentAt = 0L
 
     override fun onServiceConnected() {
         instance = this
         Guard.init(this)
-        val info = AccessibilityServiceInfo()
-        info.eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+        // 必须以 XML 里已加载的配置为底：新建空 AccessibilityServiceInfo 会整体覆盖掉
+        // canRetrieveWindowContent、settingsActivity 和 flags，部分国产 ROM 上事件会变稀疏。
+        val info = try {
+            serviceInfo ?: AccessibilityServiceInfo()
+        } catch (e: Throwable) {
+            AccessibilityServiceInfo()
+        }
+        // 全屏游戏 / 沉浸式下 WINDOW_STATE_CHANGED 可能不投递，用内容变化兜底
+        info.eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
+            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
         info.notificationTimeout = 100
         serviceInfo = info
@@ -52,7 +61,15 @@ class AppMonitorAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
-        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        val type = event.eventType
+        if (type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+            type != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) return
+        // 内容变化事件非常密，1 秒节流一次，别把判定和 UsageStats 查询打满
+        if (type == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (now - lastContentAt < 1000L) return
+            lastContentAt = now
+        }
         // 服务被 ROM 清掉时，借这次窗口事件顺手把它拉回来
         if (!MonitorService.alive) {
             try { Watchdog.ensure(this); Watchdog.startService(this) } catch (e: Throwable) { }
