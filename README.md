@@ -30,7 +30,7 @@
 | **拦过一次之后 20 秒随便玩**（最可能是真机根因） | 原实现 `shouldHandle` 一通过就占 20 秒冷却票据，但孩子点「回到桌面」收掉拦截层时票据没释放，重开游戏被直接放行。现在冷却**只在拦截层真的还在显示时才生效**（`Enforcer.blockShowing`），并在 `OverlayBlocker.hide()` / `BlockActivity.onDestroy()` 主动 `clearStrike()` 双保险，层一消失立刻恢复布防 |
 | 自检报「该拦」却没动手（假绿灯） | `blockReason()` 原先只对齐 `isBlockedNow`，漏了暂停/忽略包/**冷却中**三道前置，冷却放行时照样返回「应拦」。现在前置顺序与 `shouldHandle` 完全一致，冷却中如实显示「拦截页还在显示，N 秒后复查」 |
 | 悬浮窗「挂着却看不见」 | 原 stale-root 修复只在 `isAttachedToWindow == false` 时重建；窗口被 ROM 压到全屏游戏下面但仍是 attached 时只更新文案、不重新置顶。现在每次都先摘再挂，强制重新置顶 |
-| 无障碍事件变稀疏 | `onServiceConnected` 原来 new 一个空 `AccessibilityServiceInfo` 整体覆盖 XML，丢掉 `canRetrieveWindowContent`/`settingsActivity`/flags。现在基于已加载配置增量修改，并补 `TYPE_WINDOW_CONTENT_CHANGED` 兜底（1 秒节流） |
+| 无障碍事件变稀疏 | `onServiceConnected` 原来 new 一个空 `AccessibilityServiceInfo` 整体覆盖 XML，丢掉 `canRetrieveWindowContent`/`settingsActivity`/flags。现在基于已加载配置增量修改。**刻意不注册 `TYPE_WINDOW_CONTENT_CHANGED`**：它的包名可能来自后台应用/悬浮窗，会污染前台识别，且高频刷新会让「3 秒内用实时值」的快速返回恒命中、`queryEvents` 永远跑不到，反而静默不拦。沉浸式下靠 5 秒轮询 + `queryUsageStats` 交叉校正兜底 |
 | 并发下票据清不掉 / 串包 | `strikes` 改为 `ConcurrentHashMap`，`currentPkg` 加 `@Volatile`；降级通道不再用残留的 `blockShowing` 做守卫；`startForeground` 失败和看门狗拉起被拒都会写进 `lastResult`，不再静默 |
 
 ### 这次新增的权限（回答「有没有更好的权限可以加」）
