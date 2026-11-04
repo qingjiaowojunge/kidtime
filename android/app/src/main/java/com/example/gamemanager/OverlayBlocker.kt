@@ -41,15 +41,27 @@ object OverlayBlocker {
     fun isShowing(): Boolean = root != null
 
     fun show(ctx: Context, pkg: String) {
-        if (root != null) {
-            // 已显示：只更新内容，避免叠层
-            currentPkg = pkg
-            updateTexts(ctx)
-            return
-        }
         currentPkg = pkg
         main.post {
             try {
+                // 关键：root 不为空 ≠ 遮罩还在屏幕上。
+                // 窗口 token 被系统收走（切前台、改分辨率、厂商 ROM 清理）时，
+                // 我们的静态引用还在、窗口却已经没了。此时若按"已显示"直接 return，
+                // 之后**永远**不会再挂上去 —— 表现就是"时间到了却照样能玩"。
+                val cur = root
+                if (cur != null && cur.isAttachedToWindow) {
+                    updateTexts(ctx)
+                    return@post
+                }
+                if (cur != null) {
+                    try {
+                        val wm0 = cur.context.applicationContext
+                            .getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                        wm0.removeViewImmediate(cur)
+                    } catch (e: Throwable) { }
+                    root = null
+                    Enforcer.blockShowing = false
+                }
                 val app = ctx.applicationContext
                 val wm = app.getSystemService(Context.WINDOW_SERVICE) as WindowManager
                 val v = buildView(app)
@@ -76,13 +88,13 @@ object OverlayBlocker {
     fun hide() {
         main.post {
             val v = root ?: return@post
-            try {
-                val app = v.context.applicationContext
-                val wm = app.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-                wm.removeView(v)
-            } catch (e: Exception) { }
             root = null
             Enforcer.blockShowing = false
+            try {
+                val wm = v.context.applicationContext
+                    .getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                wm.removeViewImmediate(v)
+            } catch (e: Throwable) { }
         }
     }
 
