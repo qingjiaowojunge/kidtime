@@ -1,0 +1,7 @@
+<resources>
+    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <!-- 暖米白底：避免 WebView 首帧白闪，和界面配色一致 -->
+        <item name="android:windowBackground">#F6F3EC</item>
+    </style>
+</resources>

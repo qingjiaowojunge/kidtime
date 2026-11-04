@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>时间约定</title>
+<style>
+  :root{
+    /* 暖米白 + 墨绿 + 赭橙：家庭用品的气质，不是后台管理系统 */
+    --bg:#f6f3ec; --surface:#fffdf8; --primary:#2f6b52; --primary-600:#245744; --primary-50:#e8f0ea;
+    --text:#1c2b26; --muted:#7d8a83; --border:#e6e0d4; --line:#f1ece1;
+    --success:#3a8f62; --success-bg:#e6f2ea; --warning:#b87333; --warning-bg:#fbeee0; --danger:#c2452d; --danger-bg:#fae9e5;
+    --focus:#2c5a66; --focus-bg:#e3edf0;
+    --radius:18px; --shadow:0 1px 2px rgba(60,48,30,.05),0 10px 28px rgba(60,48,30,.07);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;}
+  #app{max-width:460px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;display:flex;flex-direction:column;}
+  .hidden{display:none !important;}
+
+  /* ---------- 顶栏 ---------- */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 14px;
+    background:linear-gradient(135deg,#245744 0%,#35755a 58%,#4a8a6b 100%);color:#fff;
+    border-radius:0 0 22px 22px;box-shadow:0 6px 18px rgba(36,87,68,.22);}
+  .brand{display:flex;align-items:center;gap:11px;}
+  .logo{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;}
+  .brand .t1{font-size:16px;font-weight:700;letter-spacing:.3px;}
+  .brand .t2{font-size:12px;opacity:.85;}
+  .seg{display:flex;background:rgba(255,255,255,.16);border-radius:20px;padding:3px;}
+  .seg-btn{border:none;background:transparent;color:#fff;font-size:13px;font-weight:600;padding:6px 14px;border-radius:17px;cursor:pointer;}
+  .seg-btn.active{background:#fffdf8;color:var(--primary-600);}
+
+  /* ---------- 横幅 ---------- */
+  .banner{margin:12px 14px 0;padding:10px 13px;border-radius:12px;font-size:12.5px;line-height:1.55;}
+  .banner.warn{background:var(--warning-bg);color:#8f5320;}
+  .banner.prev{background:var(--primary-50);color:#245744;}
+
+  /* ---------- 内容区 ---------- */
+  .pages{flex:1;overflow-y:auto;padding:14px 14px 96px;}
+  .page{display:none;}
+  .page.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .card{background:var(--surface);border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:var(--shadow);}
+  .card h3{margin:0 0 14px;font-size:15px;display:flex;align-items:center;gap:8px;}
+  .card h3 svg{width:18px;height:18px;color:var(--primary);}
+
+  /* 概览 */
+  .ov{display:flex;align-items:center;gap:18px;}
+  .ring{position:relative;width:132px;height:132px;flex:none;}
+  .ring svg{transform:rotate(-90deg);}
+  .ring .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .ring .mid .big{font-size:26px;font-weight:800;color:var(--primary);}
+  .ring .mid .small{font-size:11px;color:var(--muted);}
+  .ov-stats{flex:1;}
+  .ov-stats .row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px;}
+  .ov-stats .row:last-child{border-bottom:none;}
+  .ov-stats .row b{font-weight:700;}
+  .badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;}
+  .badge.ok{background:var(--success-bg);color:var(--success);}
+  .badge.warn{background:var(--warning-bg);color:var(--warning);}
+  .badge.lock{background:var(--danger-bg);color:var(--danger);}
+
+  .btn{display:block;width:100%;padding:14px;border:none;border-radius:14px;font-size:15px;font-weight:700;background:var(--primary);color:#fff;margin-top:4px;cursor:pointer;}
+  .btn:active{background:var(--primary-600);}
+  .btn.ghost{background:var(--surface);color:var(--primary);border:1.5px solid var(--primary);box-shadow:none;}
+  .btn.red{background:var(--danger);}
+  .btn.red:active{background:#a83a24;}
+  .btn.sm{display:inline-block;width:auto;padding:9px 16px;font-size:13px;margin:0;}
+  .note{font-size:12px;color:var(--muted);line-height:1.6;margin-top:8px;}
+
+  /* 应用列表 */
+  .search{width:100%;padding:12px 14px 12px 40px;border:1px solid var(--border);border-radius:12px;font-size:14px;background:#fffdf8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%237d8a83' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4-4'/%3E%3C/svg%3E") no-repeat 13px center;background-size:18px;}
+  .filterrow{display:flex;justify-content:flex-end;margin:10px 0 2px;}
+  .batchrow{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);
+    background:#f7f4ec;border:1px solid var(--border);border-radius:11px;padding:9px 11px;margin:10px 0 4px;}
+  .batchrow input{width:56px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:13px;text-align:center;background:var(--surface);}
+  .batchrow .btn{margin-left:auto;}
+  /* 排行 */
+  .rk-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);}
+  .rk-row:last-child{border-bottom:none;}
+  .rk-idx{width:20px;font-size:12px;font-weight:800;color:var(--muted);flex:none;text-align:center;}
+  .rk-name{flex:1;min-width:0;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rk-name .tag{font-size:10.5px;font-weight:700;color:var(--primary);background:var(--primary-50);border-radius:5px;padding:1px 5px;margin-left:6px;}
+  .rk-val{font-size:13px;font-weight:700;color:var(--primary);flex:none;}
+  /* 专注模式 */
+  .fchips{display:flex;gap:8px;}
+  .chip{flex:1;min-width:0;padding:10px 4px;border:1px solid var(--border);border-radius:10px;background:var(--surface);
+    font-size:13px;font-weight:700;color:var(--muted);font-family:inherit;cursor:pointer;}
+  .chip.active{border-color:var(--primary);color:var(--primary);background:var(--primary-50);}
+  .focus-big{font-size:36px;font-weight:800;color:var(--focus);text-align:center;letter-spacing:1px;
+    font-variant-numeric:tabular-nums;padding:8px 0 4px;}
+  /* 崩溃日志 */
+  .crashbox{background:#242019;color:#e9e3d6;font-size:11px;line-height:1.55;border-radius:10px;
+    padding:12px;max-height:240px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:10px 0 0;
+    font-family:ui-monospace,Menlo,Consolas,monospace;}
+  /* 行内数字输入 / 时间区间 */
+  .numinline{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);}
+  .numinline input{width:60px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;
+    font-size:13px;text-align:center;background:var(--surface);}
+  .timerow{display:flex;align-items:center;gap:9px;margin-top:9px;font-size:12.5px;color:var(--muted);}
+  .timerow input{flex:1;padding:9px 10px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:var(--surface);}
+  /* 操作记录 */
+  .au-row{display:flex;align-items:baseline;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
+  .au-row:last-child{border-bottom:none;}
+  .au-time{color:var(--muted);flex:none;font-size:11.5px;}
+  .au-txt{flex:1;min-width:0;line-height:1.5;}
+  .au-type{font-weight:700;}
+  .chk{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer;}
+  .chk input{width:16px;height:16px;accent-color:var(--primary);}
+  .approw{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);}
+  .approw:last-child{border-bottom:none;}
+  .ai{width:42px;height:42px;border-radius:12px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex:none;}
+  .approw .info{flex:1;min-width:0;}
+  .approw .info .n{font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .approw .info .p{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .approw .info .u{font-size:12px;color:var(--success);margin-top:3px;}
+  .approw .right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+  .lim{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);}
+  .lim input{width:54px;padding:6px 8px;border:1px solid var(--border);border-radius:9px;font-size:13px;text-align:center;}
+  .toggle{width:50px;height:28px;border-radius:14px;background:#d8d2c5;position:relative;flex:none;transition:.2s;cursor:pointer;}
+  .toggle.on{background:var(--primary);}
+  .toggle .knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--surface);transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+  .toggle.on .knob{left:25px;}
+
+  /* 统计 */
+  .st-row{margin-bottom:18px;}
+  .st-row .hd{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin-bottom:8px;}
+  .st-row .hd b{font-weight:700;}
+  .st-row .hd .v{font-size:12.5px;color:var(--muted);}
+  .st-row .hd .v.over{color:var(--danger);font-weight:700;}
+  .bar{height:11px;background:var(--line);border-radius:6px;overflow:hidden;}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,#5fae86,var(--primary));border-radius:6px;}
+  .bar.over>i{background:linear-gradient(90deg,#d9775c,var(--danger));}
+  .week{display:flex;gap:6px;margin-top:9px;align-items:flex-end;height:52px;}
+  .week .d{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+  .week .d .col{width:100%;background:#cfe3d6;border-radius:4px 4px 0 0;min-height:3px;}
+  .week .d .lab{font-size:9px;color:var(--muted);margin-top:3px;}
+
+  /* 我的 */
+  .field{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:12px;background:var(--surface);}
+  .perm-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px;}
+  .perm-row:last-child{border-bottom:none;}
+  .perm-row>span:first-child{flex:1;min-width:0;line-height:1.5;}
+  .perm-state{font-size:13px;font-weight:700;flex:none;white-space:nowrap;}
+  .perm-state.ok{color:var(--success);}
+  .perm-state.no{color:var(--danger);}
+  .iconbtn{display:inline-flex;align-items:center;gap:6px;}
+
+  /* 孩子端：只回答一个问题——「我还能玩多久」 */
+  #childView{flex:1;overflow-y:auto;padding:0 14px 96px;}
+  .kid-hd{padding:24px 4px 14px;text-align:center;}
+  .kid-hd .t{font-size:19px;font-weight:800;letter-spacing:.5px;color:var(--primary-600);}
+  .kid-hd .play{font-size:13px;color:var(--muted);margin-top:7px;}
+  .kid-card{background:var(--surface);border-radius:20px;padding:18px 20px;margin-bottom:13px;
+    box-shadow:var(--shadow);border-left:5px solid var(--primary);}
+  .kid-card .kt{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .kid-card .nm{font-size:15.5px;font-weight:700;}
+  .kid-card .st{font-size:11.5px;font-weight:700;color:var(--primary);background:var(--primary-50);
+    border-radius:20px;padding:3px 11px;flex:none;white-space:nowrap;}
+  .kid-card .rem{font-size:44px;font-weight:800;color:var(--primary);margin:6px 0 0;line-height:1.15;
+    font-variant-numeric:tabular-nums;}
+  .kid-card .rem small{font-size:16px;font-weight:700;color:var(--muted);margin-left:3px;}
+  .kid-card .pbar{height:8px;background:var(--line);border-radius:5px;overflow:hidden;margin-top:12px;}
+  .kid-card .pbar>i{display:block;height:100%;background:linear-gradient(90deg,#5fae86,var(--primary));border-radius:5px;}
+  .kid-card.over{border-left-color:var(--danger);}
+  .kid-card.over .rem{font-size:36px;color:var(--danger);}
+  .kid-card.over .st{color:var(--danger);background:var(--danger-bg);}
+  .kid-card.over .pbar>i{background:var(--danger);}
+  .kid-done{text-align:center;padding:20px 16px;margin-bottom:14px;background:var(--surface);
+    border-radius:18px;box-shadow:var(--shadow);}
+  .kid-done .big{font-size:17px;font-weight:800;color:var(--danger);}
+  .kid-done .sub{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.75;}
+
+  /* 家长新手引导 */
+  .gstep{display:flex;gap:11px;padding:11px 0;border-bottom:1px dashed var(--line);}
+  .gstep:last-child{border-bottom:none;}
+  .gstep .gn{width:23px;height:23px;border-radius:50%;background:var(--primary);color:#fff;font-size:12.5px;
+    font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px;}
+  .gstep b{font-size:14px;display:block;margin-bottom:3px;}
+  .gstep .gd{font-size:12.5px;color:var(--muted);line-height:1.65;}
+
+  /* 空状态 */
+  .empty{text-align:center;color:var(--muted);font-size:13.5px;padding:34px 14px;line-height:1.8;}
+  .empty .ico{width:54px;height:54px;margin:0 auto 12px;color:#cdc6b6;}
+
+  /* 底部导航 */
+  .bottomnav{position:sticky;bottom:0;display:flex;background:var(--surface);border-top:1px solid var(--border);
+    padding:8px 0 10px;box-shadow:0 -4px 16px rgba(60,48,30,.06);}
+  .bottomnav .tab{flex:1;text-align:center;color:var(--muted);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;}
+  .bottomnav .tab svg{width:23px;height:23px;}
+  .bottomnav .tab.active{color:var(--primary);font-weight:700;}
+
+  /* 管控状态条 */
+  .guardbar{display:flex;align-items:center;gap:9px;margin:10px 14px 0;padding:11px 14px;border-radius:12px;
+    background:var(--success-bg);color:#1f5a3d;font-size:13px;font-weight:600;}
+  .guardbar.paused{background:var(--warning-bg);color:#8f5320;}
+  .guardbar.off{background:#efece3;color:var(--muted);}
+  .guardbar.focus{background:var(--focus-bg);color:var(--focus);}
+  .guardbar .dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none;}
+  .guardbar .gtxt{flex:1;min-width:0;}
+  .guardbar .gbtn{border:1.5px solid currentColor;background:transparent;color:inherit;font-size:12.5px;
+    font-weight:700;padding:5px 12px;border-radius:20px;cursor:pointer;white-space:nowrap;}
+
+  /* 策略选择 */
+  .optrow{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer;}
+  .optrow:last-child{border-bottom:none;}
+  .optrow input{margin-top:3px;accent-color:var(--primary);flex:none;}
+  .optrow .od{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5;}
+
+  /* 锁屏遮罩 */
+  #lockOverlay{position:fixed;inset:0;background:rgba(26,24,19,.97);color:#fffdf8;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:60;padding:28px;text-align:center;}
+  #lockOverlay.show{display:flex;}
+  #lockOverlay .ico{width:64px;height:64px;color:#e07a5f;margin-bottom:16px;}
+  #lockOverlay .big{font-size:28px;font-weight:800;margin-bottom:10px;}
+  #lockOverlay .sub{font-size:14px;color:#cfc9bc;line-height:1.7;}
+  /* 家长密码弹窗（不用 window.prompt：WebView 里 prompt 会静默失效） */
+  #pwModal{position:fixed;inset:0;background:rgba(26,24,19,.52);display:flex;align-items:center;justify-content:center;z-index:80;padding:24px;}
+  #pwModal .box{background:var(--surface);border-radius:20px;padding:22px;width:100%;max-width:330px;
+    box-shadow:0 18px 50px rgba(26,24,19,.3);}
+  #pwModal .mt{font-size:17px;font-weight:800;color:var(--primary-600);}
+  #pwModal .ms{font-size:12.5px;color:var(--muted);margin:7px 0 14px;line-height:1.65;}
+  #pwModal .field{margin-bottom:0;text-align:center;letter-spacing:4px;font-size:18px;}
+  #pwModal .mrow{display:flex;gap:10px;margin-top:14px;}
+  #pwModal .mrow .btn{margin-top:0;flex:1;width:auto;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/>
+        </svg>
+      </div>
+      <div><div class="t1">时间约定</div><div class="t2" id="modeLabel">孩子端</div></div>
+    </div>
+    <div class="seg">
+      <button class="seg-btn" id="segParent" type="button">家长</button>
+      <button class="seg-btn active" id="segChild" type="button">孩子</button>
+    </div>
+  </div>
+
+  <div id="permBanner" class="banner warn hidden"></div>
+  <div id="prevBanner" class="banner prev hidden"></div>
+
+  <!-- 管控状态条：家长一眼看到"现在到底管不管" -->
+  <div id="guardBar" class="guardbar hidden">
+    <span class="dot"></span>
+    <span class="gtxt" id="guardText">管控中</span>
+    <button class="gbtn" id="guardToggle" type="button">暂停</button>
+  </div>
+
+  <!-- ============ 家长端 ============ -->
+  <div id="parentView">
+    <div class="pages">
+      <!-- 概览 -->
+      <div class="page active" id="p-overview">
+        <!-- 零基础家长照着做就行，看完可收起（在「我的」里能再调出来） -->
+        <div class="card" id="guideCard">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M8 8h8M8 12h6"/></svg>四步就能用（家长看这里）</h3>
+          <div class="gstep"><span class="gn">1</span><div><b>先给两个权限</b>
+            <div class="gd">点底部「我的」→ 依次点「授予悬浮窗权限」和「授予用量权限」。这两个不给，软件就是摆设，管不住任何东西。</div></div></div>
+          <div class="gstep"><span class="gn">2</span><div><b>挑要管的游戏，填分钟</b>
+            <div class="gd">点底部「应用」→ 在搜索框打游戏名 → 打开右边开关 → 填每天给几分钟（比如 40）。填完会自动保存，不用点"保存"。</div></div></div>
+          <div class="gstep"><span class="gn">3</span><div><b>把手机给孩子</b>
+            <div class="gd">孩子看到的是孩子端：每个游戏只剩「还能玩多久」，看不到总额度、也改不了设置。想进家长端要输密码，默认 1234，建议改成自己的。</div></div></div>
+          <div class="gstep"><span class="gn">4</span><div><b>要通融的时候</b>
+            <div class="gd">「概览」页可以临时加时，或点「我的」→「暂停管控 30 分钟」。用完会自动恢复，不会忘。</div></div></div>
+          <button class="btn ghost sm" id="guideHide" style="width:100%;margin-top:12px;">看完了，收起</button>
+        </div>
+        <div class="card">
+          <div class="ov">
+            <div class="ring">
+              <svg width="132" height="132">
+                <circle cx="66" cy="66" r="58" fill="none" stroke="#f1ece1" stroke-width="12"/>
+                <circle id="ringUsed" cx="66" cy="66" r="58" fill="none" stroke="var(--primary)" stroke-width="12" stroke-linecap="round" stroke-dasharray="364.42" stroke-dashoffset="364.42"/>
+              </svg>
+              <div class="mid"><div class="big" id="ovUsed">0</div><div class="small">今日已用(分)</div></div>
+            </div>
+            <div class="ov-stats">
+              <div class="row"><span>总限额</span><b id="ovLimit">0 分</b></div>
+              <div class="row"><span>剩余</span><b id="ovRemain">0 分</b></div>
+              <div class="row"><span>状态</span><span id="ovBadge" class="badge warn">未配置</span></div>
+            </div>
+          </div>
+          <div class="note" id="ovTotal"></div>
+        </div>
+        <div class="card" id="rankCard">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V11M10 20V4M16 20V14M22 20V8"/></svg>今天都在用什么</h3>
+          <div id="rankList"><div class="empty" style="padding:16px 0;">正在读取真实用量…</div></div>
+          <div class="note">包含<b>未纳入管控</b>的应用，用来判断到底该管哪一个。</div>
+        </div>
+        <div class="card" id="focusCard">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>专注模式</h3>
+          <div id="focusIdle">
+            <div class="fchips" id="focusChips">
+              <button class="chip" data-min="25">25 分</button>
+              <button class="chip active" data-min="45">45 分</button>
+              <button class="chip" data-min="60">60 分</button>
+              <button class="chip" data-min="90">90 分</button>
+            </div>
+            <button class="btn" id="focusStart" style="margin-top:10px;">开始专注</button>
+          </div>
+          <div id="focusRunning" class="hidden">
+            <div class="focus-big" id="focusCount">45:00</div>
+            <div class="note" id="focusNote">专注中：受管应用一律打不开，且不消耗今天的额度。</div>
+            <button class="btn red" id="focusStop" style="margin-top:10px;">结束专注</button>
+          </div>
+          <div class="note">只作用于「应用」页勾选的那些应用。电话、短信、相机这些没勾选的不受影响，不会被误锁。</div>
+        </div>
+        <div class="card">
+          <button class="btn red" id="lockBtn">一键锁机</button>
+          <div class="note">超额后系统按真实用量自动处理（默认只弹拦截页，不锁屏）。</div>
+        </div>
+      </div>
+
+      <!-- 应用 -->
+      <div class="page" id="p-apps">
+        <div class="card">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>选择要管控的应用</h3>
+          <div class="note">以下为手机<b>真实已装应用</b>。搜索找到要管控的 App，开启开关即纳入管控并设置每日分钟数。</div>
+          <input class="search" id="appSearch" placeholder="搜索应用名…">
+          <div class="filterrow"><label class="chk"><input type="checkbox" id="sysToggle"> 显示系统应用</label></div>
+          <div class="batchrow">
+            <span>批量：已选应用统一设为</span>
+            <input type="number" min="1" id="batchLimit" value="30">
+            <span>分/天</span>
+            <button class="btn ghost sm" id="batchApply">应用</button>
+          </div>
+          <div id="appList"></div>
+          <div id="appEmpty" class="empty hidden">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+            无法读取已装应用。<br>请确认在真机/模拟器中运行，并已授予必要权限。
+          </div>
+        </div>
+      </div>
+
+      <!-- 统计 -->
+      <div class="page" id="p-stats">
+        <div class="card" id="statsCard"><div class="empty">尚未选择受管控应用。</div></div>
+      </div>
+
+      <!-- 我的 -->
+      <div class="page" id="p-me">
+        <div class="card">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>家长密码</h3>
+          <input class="field" id="pwInput" type="password" placeholder="设置家长密码">
+          <button class="btn ghost sm" id="pwSave">保存密码</button>
+          <div class="note">进入家长端需输入此密码，防止孩子篡改设置。默认 1234。</div>
+        </div>
+        <div class="card">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/></svg>系统能力授权</h3>
+          <div class="perm-row"><span>显示在其他应用上层（拦截页必需）</span><span id="ovlState" class="perm-state no">未授予</span></div>
+          <div class="perm-row"><span>使用情况访问（真实时长）</span><span id="usageState" class="perm-state no">未授予</span></div>
+          <div class="perm-row"><span>无障碍（退到桌面，可选）</span><span id="accState" class="perm-state no">未开启</span></div>
+          <div class="perm-row"><span>设备管理员（锁屏，可选；启用后须先"彻底解除"才能卸载）</span><span id="adminState" class="perm-state no">未启用</span></div>
+          <div class="perm-row"><span>后台运行（电池优化白名单）</span><span id="battState" class="perm-state no">未加入</span></div>
+          <button class="btn ghost sm" id="enableOverlay" style="margin-top:10px;">授予悬浮窗权限</button>
+          <button class="btn ghost sm" id="enableUsage" style="margin-top:8px;">授予用量权限</button>
+          <button class="btn ghost sm" id="enableAcc" style="margin-top:8px;">开启无障碍</button>
+          <button class="btn ghost sm" id="enableAdmin" style="margin-top:8px;">启用设备管理员</button>
+          <button class="btn ghost sm" id="enableBatt" style="margin-top:8px;">加入电池优化白名单</button>
+          <div class="note">只有「悬浮窗」和「用量访问」是必做的；无障碍和设备管理员只在你选了对应处理方式时才需要。</div>
+        </div>
+
+        <div class="card">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>超额后怎么处理</h3>
+          <label class="optrow"><input type="radio" name="policy" value="block" checked>
+            <span><b>只弹全屏拦截页</b><div class="od">孩子退不出去，但手机不锁死。不需要无障碍和设备管理员，最稳。</div></span></label>
+          <label class="optrow"><input type="radio" name="policy" value="block_home">
+            <span><b>拦截页 + 退回桌面</b><div class="od">额外把游戏压到后台。需要开启无障碍服务。</div></span></label>
+          <label class="optrow"><input type="radio" name="policy" value="lock">
+            <span><b>拦截页 + 直接锁屏</b><div class="od">最强制，会锁住整台手机。需要设备管理员，且会打断你自己的操作，慎用。</div></span></label>
+        </div>
+        <div class="card">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>额度与时段</h3>
+          <label class="optrow"><input type="checkbox" id="weekendSplit">
+            <span><b>工作日 / 周末分开设</b><div class="od">关闭时周末沿用工作日的限额。</div></span></label>
+          <div class="perm-row"><span>每日总时长上限（受管应用合计）</span>
+            <span class="numinline"><input type="number" min="0" id="totalLimit" value="0"> 分</span></div>
+          <div class="note">填 0 表示不限总时长，只按单个应用算。</div>
+          <label class="optrow" style="margin-top:6px;"><input type="checkbox" id="curfewOn">
+            <span><b>免打扰时段</b><div class="od">这段时间内所有受管应用一律拦截，适合睡觉时间。</div></span></label>
+          <div class="timerow">
+            <input type="time" id="curfewStart" value="22:00">
+            <span>至</span>
+            <input type="time" id="curfewEnd" value="07:00">
+          </div>
+          <div class="perm-row" style="margin-top:6px;"><span>快用完时提前提醒</span>
+            <span class="numinline"><input type="number" min="0" max="60" id="notifyBefore" value="5"> 分前</span></div>
+          <div class="note">填 0 关闭提醒。提醒每个应用每天只发一次。</div>
+        </div>
+
+        <div class="card">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17v.01"/><path d="M10.3 3.9L2.4 18a1.6 1.6 0 0 0 1.4 2.4h16.4a1.6 1.6 0 0 0 1.4-2.4L13.7 3.9a1.6 1.6 0 0 0-2.8 0z"/></svg>崩溃日志</h3>
+          <div class="note" id="crashHint">如果应用闪退过，这里能看到原因。把内容发给我就能定位。</div>
+          <pre id="crashBox" class="crashbox hidden"></pre>
+          <button class="btn ghost sm" id="crashView" style="width:100%;margin-top:10px;">查看最近一次崩溃</button>
+          <button class="btn ghost sm" id="crashCopy" style="width:100%;margin-top:8px;">复制内容</button>
+          <button class="btn ghost sm" id="crashClear" style="width:100%;margin-top:8px;">清除记录</button>
+          <div class="note" id="verLine" style="margin-top:10px;">当前版本：读取中…</div>
+        </div>
+
+        <div class="card">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16M4 12h16M4 19h10"/></svg>操作记录</h3>
+          <div id="auditList"><div class="empty" style="padding:14px 0;">还没有操作记录。</div></div>
+          <button class="btn ghost sm" id="auditClear" style="width:100%;margin-top:10px;">清空记录</button>
+          <div class="note">记录加时、豁免、暂停/恢复、拦截动作，方便回溯“昨天到底给谁加了多少”。</div>
+        </div>
+
+        <div class="card">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>暂停 / 重置</h3>
+          <button class="btn ghost sm" id="pause30" style="width:100%;">暂停管控 30 分钟</button>
+          <button class="btn ghost sm" id="resumeNow" style="margin-top:8px;width:100%;">立即恢复管控</button>
+          <button class="btn ghost sm red" id="resetAll" style="margin-top:8px;width:100%;">清空所有管控配置</button>
+          <button class="btn ghost sm red" id="releaseAll" style="margin-top:8px;width:100%;">彻底解除管控（解除后才能卸载本应用）</button>
+          <div class="note">卸载前必须先点这个：只要设备管理员还激活着，系统就不允许卸载本应用。</div>
+          <div class="note">暂停期间完全不拦截，可以用来调试或让孩子自由使用。到期自动恢复。</div>
+        </div>
+        <div class="card">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M8 8h8M8 12h6"/></svg>使用说明</h3>
+          <button class="btn ghost sm" id="guideShow" style="width:100%;">重新显示「四步就能用」</button>
+          <div class="note">孩子端点右上角「孩子」随时可以回到孩子端；点「家长」要输密码。</div>
+        </div>
+        <div class="note">v2 · 数据全部来自手机真实用量（UsageStatsManager）与已装应用（PackageManager）。</div>
+      </div>
+    </div>
+
+    <nav class="bottomnav">
+      <div class="tab active" data-page="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 12V6"/><path d="M12 12l4 3"/></svg>概览
+      </div>
+      <div class="tab" data-page="apps">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>应用
+      </div>
+      <div class="tab" data-page="stats">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V11M10 20V4M16 20V14M22 20V8"/></svg>统计
+      </div>
+      <div class="tab" data-page="me">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>我的
+      </div>
+    </nav>
+  </div>
+
+  <!-- ============ 孩子端（默认入口）：只回答一个问题——我还能玩多久 ============ -->
+  <div id="childView" class="hidden">
+    <div class="kid-hd">
+      <div class="t">我的时间</div>
+      <div class="play" id="kidPlaying">—</div>
+    </div>
+    <div id="kidList"></div>
+    <div id="kidAllDone" class="kid-done hidden">
+      <div class="big">今天的时间都用完了</div>
+      <div class="sub">明天再玩吧。<br>想现在继续，请找家长帮你加时间。</div>
+    </div>
+    <div id="kidEmpty" class="empty hidden">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 12V6"/><path d="M12 12l4 3"/></svg>
+      家长还没给你设置游戏时间。
+      <div style="margin-top:16px;"><button class="btn ghost sm" id="kidToParent" type="button">我是家长，去设置</button></div>
+    </div>
+  </div>
+
+  <!-- 家长密码弹窗（页面内实现，不依赖 WebView 的 prompt） -->
+  <div id="pwModal" class="hidden">
+    <div class="box">
+      <div class="mt">家长验证</div>
+      <div class="ms" id="pwMsg">请输入家长密码</div>
+      <input class="field" id="pwModalInput" type="password" inputmode="numeric" autocomplete="off" placeholder="••••">
+      <div class="mrow">
+        <button class="btn ghost" id="pwCancel" type="button">取消</button>
+        <button class="btn" id="pwOk" type="button">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 超限提示层（必须带出口，禁止做成关不掉的黑屏） -->
+  <div id="lockOverlay">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+    <div class="big" id="lockTitle">今日时间已用完</div>
+    <div class="sub" id="lockSub">该应用已达到每日限额。<br>请让家长在「家长入口」中为该应用加时。</div>
+    <button class="btn ghost" id="lockDismiss" style="margin-top:22px;max-width:260px;background:transparent;color:#fff;border-color:rgba(255,255,255,.5);">返回</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- 脚本异常兜底：宁可显示一行错误，也不要白屏 ---------- */
+  var lastJsError='';
+  window.onerror=function(m,src,line){
+    lastJsError=String(m||'')+' @ '+String(src||'').split('/').pop()+':'+String(line||0);
+    try{
+      var pb=document.getElementById('permBanner');
+      if(pb){ pb.classList.remove('hidden'); pb.textContent='界面脚本出错：'+lastJsError; }
+    }catch(e){}
+    return false;
+  };
+  var CFG_KEY='gm_config_v2', MODE_KEY='gm_mode';
+  var NATIVE = (typeof GameBridge !== 'undefined');
+  var isPreview = !NATIVE;
+  var mode = 'parent';
+
+  /* ---------- 预览示例数据（仅网页预览，真机不出现） ---------- */
+  var SAMPLE_APPS = [
+    {name:'王者荣耀', pkg:'com.tencent.tmgp.sgame'},
+    {name:'和平精英', pkg:'com.tencent.tmgp.pubgm'},
+    {name:'原神',     pkg:'com.miHoYo.Yuanshen'},
+    {name:'抖音',     pkg:'com.ss.android.ugc.aweme'},
+    {name:'微信',     pkg:'com.tencent.mm'}
+  ];
+  var SAMPLE_USAGE = {
+    'com.tencent.tmgp.sgame':42*60000, 'com.tencent.tmgp.pubgm':18*60000,
+    'com.miHoYo.Yuanshen':55*60000, 'com.ss.android.ugc.aweme':30*60000, 'com.tencent.mm':12*60000
+  };
+  function sampleSeries(pkg){
+    var base = (SAMPLE_USAGE[pkg]||0)/60000;
+    var arr=[];
+    for(var i=0;i<7;i++){ arr.push(Math.max(0, Math.round((base*(0.5+Math.random()*0.9)))*60000)); }
+    if(arr.length) arr[6] = SAMPLE_USAGE[pkg]||0;
+    return arr;
+  }
+  var AV_COLORS=['#2f6b52','#4f9a75','#b87333','#c2452d','#7a6a4f','#3f6b78','#8a5a83','#9c7b3d'];
+
+  /* ---------- 存储（沙箱/隐私模式下 localStorage 可能抛异常，统一兜底） ---------- */
+  function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  function loadCfg(){
+    var c=null;
+    try{ c=JSON.parse(lsGet(CFG_KEY)); }catch(e){}
+    if(!c) c = { password:'1234', managedApps:[] };
+    // 旧版本配置自动补齐新字段（不破坏已有数据）
+    if(!c.managedApps) c.managedApps=[];
+    if(!c.policy) c.policy='block';
+    if(typeof c.weekendSplit!=='boolean') c.weekendSplit=false;
+    if(typeof c.totalLimit!=='number') c.totalLimit=0;
+    if(!c.curfew) c.curfew={on:false,start:'22:00',end:'07:00'};
+    if(typeof c.notifyBefore!=='number') c.notifyBefore=5;
+    c.managedApps.forEach(function(a){
+      if(typeof a.limit!=='number'||a.limit<1) a.limit=30;
+      if(typeof a.limitWe!=='number'||a.limitWe<1) a.limitWe=a.limit;
+    });
+    return c;
+  }
+  function saveCfg(){ lsSet(CFG_KEY, JSON.stringify(cfg)); }
+  var cfg = loadCfg();
+  function managedIndex(pkg){ for(var i=0;i<cfg.managedApps.length;i++){ if(cfg.managedApps[i].pkg===pkg) return i; } return -1; }
+
+  /* ---------- 原生封装 ---------- */
+  function hasUsage(){ if(!NATIVE) return false; try{ return GameBridge.hasUsagePermission(); }catch(e){ return false; } }
+  function isAdmin(){ if(!NATIVE) return false; try{ return GameBridge.isAdminActive(); }catch(e){ return false; } }
+  function isAcc(){ if(!NATIVE) return false; try{ return GameBridge.isAccessibilityOn(); }catch(e){ return false; } }
+  function hasOverlay(){ if(!NATIVE) return false; try{ return GameBridge.hasOverlayPermission(); }catch(e){ return false; } }
+
+  /* ---------- 管控状态（一律读原生真值，不在网页里猜） ---------- */
+  var guardState={paused:false,pauseRemain:0,policy:'block',fg:'',focus:false,focusRemain:0};
+  var PREVIEW_BONUS={};
+  function readGuard(){
+    if(!NATIVE) return guardState;
+    try{ guardState=JSON.parse(GameBridge.getGuardState()); }catch(e){}
+    return guardState;
+  }
+  function bonusMin(pkg){
+    if(!NATIVE) return PREVIEW_BONUS[pkg]||0;
+    try{ return GameBridge.getBonus(pkg); }catch(e){ return 0; }
+  }
+  /** 今天该用哪套基准限额（工作日 / 周末） */
+  function baseLimit(a){
+    if(cfg.weekendSplit && guardState && guardState.weekend){
+      return (typeof a.limitWe==='number'&&a.limitWe>0)? a.limitWe : a.limit;
+    }
+    return a.limit;
+  }
+  /** 有效限额 = 当日基准 + 今日加时 */
+  function effLimit(a){ return baseLimit(a) + bonusMin(a.pkg); }
+  function hhmm2min(s){
+    var m=/^(\d{1,2}):(\d{2})$/.exec(String(s||''));
+    if(!m) return 0;
+    return Math.min(23,parseInt(m[1],10))*60 + Math.min(59,parseInt(m[2],10));
+  }
+  function min2hhmm(v){
+    v=Math.max(0,Math.min(1439,v|0));
+    var h=Math.floor(v/60), m=v%60;
+    return (h<10?'0':'')+h+':'+(m<10?'0':'')+m;
+  }
+
+  function doPause(m){
+    if(!NATIVE){ toast('网页预览不支持真拦截'); return; }
+    try{ GameBridge.pauseGuard(m); }catch(e){}
+    refreshGuardBar(); refreshBanners();
+  }
+  function doResume(){
+    if(!NATIVE) return;
+    try{ GameBridge.resumeGuard(); }catch(e){}
+    refreshGuardBar(); refreshBanners();
+  }
+  function toast(msg){ if(NATIVE){ try{ GameBridge.toast(msg); return; }catch(e){} } }
+
+  function refreshGuardBar(){
+    var bar=document.getElementById('guardBar'); if(!bar) return;
+    // 孩子端不给任何家长操作入口：暂停/恢复这类按钮必须收起来
+    if(mode==='child'){ bar.classList.add('hidden'); return; }
+    if(isPreview){ bar.classList.add('hidden'); return; }
+    var g=readGuard();
+    var t=document.getElementById('guardText'), btn=document.getElementById('guardToggle');
+    bar.classList.remove('hidden');
+    if(cfg.managedApps.length===0){
+      bar.className='guardbar off';
+      t.textContent='还没有选择要管控的应用，当前不拦截任何东西';
+      btn.textContent='去选择';
+      btn.onclick=function(){ var tab=document.querySelector('#parentView .tab[data-page="apps"]'); if(tab) tab.click(); };
+      return;
+    }
+    if(g.paused){
+      bar.className='guardbar paused';
+      t.textContent='管控已暂停'+(g.pauseRemain>0?'，还剩 '+g.pauseRemain+' 分钟':'（无限期）');
+      btn.textContent='恢复';
+      btn.onclick=doResume;
+    } else if(g.focus){
+      bar.className='guardbar focus';
+      t.textContent='专注模式中，还剩 '+(g.focusRemain||0)+' 分钟';
+      btn.textContent='结束专注';
+      btn.onclick=function(){ if(NATIVE){ try{ GameBridge.stopFocus(); }catch(e){} } refreshGuardBar(); renderFocus(true); };
+    } else if(g.curfew){
+      bar.className='guardbar paused';
+      t.textContent='免打扰时段生效中，受管应用已拦截';
+      btn.textContent='暂停 30 分钟';
+      btn.onclick=function(){ doPause(30); };
+    } else {
+      bar.className='guardbar';
+      t.textContent='正在管控 '+cfg.managedApps.length+' 个应用';
+      btn.textContent='暂停 30 分钟';
+      btn.onclick=function(){ doPause(30); };
+    }
+  }
+
+  /* ---------- 横幅 ---------- */
+  function refreshBanners(){
+    var pb=document.getElementById('permBanner'), pv=document.getElementById('prevBanner');
+    // 孩子端不出现权限/预览这类家长向提示，保持界面干净
+    if(mode==='child'){ pb.classList.add('hidden'); pv.classList.add('hidden'); return; }
+    if(isPreview){ pv.classList.remove('hidden'); pv.textContent='网页预览（示例数据）：界面与交互均为真实结构，安装 APK 后自动替换为手机真实已装应用与真实使用时长。'; pb.classList.add('hidden'); return; }
+    pv.classList.add('hidden');
+    if(!hasUsage()){
+      pb.classList.remove('hidden');
+      pb.innerHTML='未授予「使用情况访问」权限，读不到真实使用时长，管控不会生效。<button class="btn ghost sm" style="margin-left:8px;" onclick="GameBridge.openUsageSettings()">去授予</button>';
+      return;
+    }
+    if(cfg.managedApps.length>0 && !hasOverlay()){
+      pb.classList.remove('hidden');
+      pb.innerHTML='未授予「显示在其他应用上层」权限，超额时弹不出拦截页（只会发一条通知）。<button class="btn ghost sm" style="margin-left:8px;" onclick="GameBridge.requestOverlayPermission()">去授予</button>';
+      return;
+    }
+    pb.classList.add('hidden');
+  }
+
+  /* ---------- 权限状态 ---------- */
+  function refreshPermStates(){
+    var o=document.getElementById('ovlState');
+    if(o){ o.textContent=hasOverlay()?'已授予':'未授予'; o.className='perm-state '+(hasOverlay()?'ok':'no'); }
+    var u=document.getElementById('usageState');
+    if(u){ u.textContent=hasUsage()?'已授予':'未授予'; u.className='perm-state '+(hasUsage()?'ok':'no'); }
+    var c=document.getElementById('accState');
+    if(c){ c.textContent=isAcc()?'已开启':'未开启'; c.className='perm-state '+(isAcc()?'ok':'no'); }
+    var a=document.getElementById('adminState');
+    if(a){ a.textContent=isAdmin()?'已启用':'未启用'; a.className='perm-state '+(isAdmin()?'ok':'no'); }
+    var b=document.getElementById('battState');
+    if(b){ var ok=false; if(NATIVE){ try{ ok=GameBridge.isIgnoringBatteryOptimizations(); }catch(e){} }
+      b.textContent=ok?'已加入':'未加入'; b.className='perm-state '+(ok?'ok':'no'); }
+  }
+
+  /* ---------- 真实用量 ---------- */
+  function getAllUsage(){
+    if(isPreview) return JSON.parse(JSON.stringify(SAMPLE_USAGE));
+    if(!NATIVE||!hasUsage()) return {};
+    try{ return JSON.parse(GameBridge.getAllUsageToday()); }catch(e){ return {}; }
+  }
+  function usageMin(pkg, map){ return Math.round(((map&&map[pkg])||0)/60000); }
+
+  /* ---------- 推送完整管控配置到原生 ---------- */
+  function pushManaged(){
+    if(!NATIVE) return;
+    var apps=cfg.managedApps.map(function(a){
+      var we = cfg.weekendSplit ? ((a.limitWe>0)?a.limitWe:a.limit) : a.limit;
+      return {pkg:a.pkg, wd:a.limit, we:we};
+    });
+    var payload={
+      apps: apps,
+      total: cfg.totalLimit||0,
+      curfewOn: !!(cfg.curfew&&cfg.curfew.on),
+      curfewStart: hhmm2min(cfg.curfew&&cfg.curfew.start),
+      curfewEnd: hhmm2min(cfg.curfew&&cfg.curfew.end),
+      notify: cfg.notifyBefore||0
+    };
+    try{ GameBridge.setManagedApps(JSON.stringify(payload)); }catch(e){}
+    try{ GameBridge.setPolicy(cfg.policy||'block'); }catch(e){}
+  }
+
+  /* ---------- 概览 ---------- */
+  function renderOverview(){
+    var map=getAllUsage();
+    var totalLimit=0, totalUsed=0, over=false;
+    cfg.managedApps.forEach(function(a){
+      var lim=effLimit(a), used=usageMin(a.pkg,map);
+      totalLimit+=lim; totalUsed+=used;
+      if(used>=lim) over=true;
+    });
+    document.getElementById('ovUsed').textContent=totalUsed;
+    document.getElementById('ovLimit').textContent=totalLimit+' 分';
+    document.getElementById('ovRemain').textContent=Math.max(0,totalLimit-totalUsed)+' 分';
+    var ratio= totalLimit>0 ? Math.min(1, totalUsed/totalLimit) : 0;
+    document.getElementById('ringUsed').setAttribute('stroke-dashoffset', (364.42*(1-ratio)).toFixed(2));
+    var badge=document.getElementById('ovBadge');
+    var g=readGuard();
+    if(cfg.managedApps.length===0){ badge.textContent='未配置'; badge.className='badge warn'; }
+    else if(g.paused){ badge.textContent='已暂停'; badge.className='badge warn'; }
+    else if(over){ badge.textContent='有应用超限'; badge.className='badge lock'; }
+    else { badge.textContent='管控中'; badge.className='badge ok'; }
+
+    // 总时长 / 免打扰 的补充说明
+    var el=document.getElementById('ovTotal');
+    if(el){
+      var parts=[];
+      if(cfg.totalLimit>0){
+        parts.push('每日总时长：'+(g.totalUsed||0)+' / '+cfg.totalLimit+' 分');
+      }
+      if(cfg.curfew&&cfg.curfew.on){
+        parts.push('免打扰时段 '+cfg.curfew.start+'–'+cfg.curfew.end+(g.curfew?'（已生效）':''));
+      }
+      if(cfg.weekendSplit){ parts.push(g.weekend?'今天是周末限额':'今天是工作日限额'); }
+      el.textContent=parts.join('　·　');
+    }
+  }
+
+  /* ---------- 今日真实使用排行 ---------- */
+  function renderRank(){
+    var box=document.getElementById('rankList'); if(!box) return;
+    if(isPreview){
+      var arr=[];
+      for(var k in SAMPLE_USAGE) arr.push({pkg:k, name:(function(p){for(var i=0;i<SAMPLE_APPS.length;i++)if(SAMPLE_APPS[i].pkg===p)return SAMPLE_APPS[i].name; return p;})(k), ms:SAMPLE_USAGE[k]});
+      arr.sort(function(a,b){return b.ms-a.ms;});
+      box.innerHTML=rankHtml(arr.slice(0,5));
+      return;
+    }
+    if(!NATIVE||!hasUsage()){ box.innerHTML='<div class="empty" style="padding:16px 0;">未授予用量权限，读不到真实使用数据。</div>'; return; }
+    var list=[];
+    try{ list=JSON.parse(GameBridge.getTodayRanking(5)); }catch(e){ list=[]; }
+    box.innerHTML=rankHtml(list);
+  }
+  function rankHtml(list){
+    if(!list||!list.length) return '<div class="empty" style="padding:16px 0;">今天还没有可统计的使用记录。</div>';
+    var html='';
+    list.forEach(function(a,i){
+      var mins=Math.round((a.ms||0)/60000);
+      var managed=managedIndex(a.pkg)>=0;
+      html+='<div class="rk-row"><div class="rk-idx">'+(i+1)+'</div>'
+        +'<div class="rk-name">'+esc(a.name||a.pkg)+(managed?'<span class="tag">管控中</span>':'')+'</div>'
+        +'<div class="rk-val">'+mins+' 分</div></div>';
+    });
+    return html;
+  }
+
+  /* ---------- 应用列表（真实已装 / 预览示例） ---------- */
+  var allApps=[];
+  var showSystem=false;
+  function loadApps(){
+    var box=document.getElementById('appList'), empty=document.getElementById('appEmpty');
+    if(isPreview){
+      if(cfg.managedApps.length===0){
+        cfg.managedApps = SAMPLE_APPS.slice(0,3).map(function(a){
+          var lim = a.pkg.indexOf('sgame')>=0?60 : (a.pkg.indexOf('pubgm')>=0?45:90);
+          return {pkg:a.pkg,name:a.name,limit:lim};
+        });
+        saveCfg();
+      }
+      allApps = SAMPLE_APPS.slice();
+      empty.classList.add('hidden');
+      renderAppList();
+      return;
+    }
+    try{ allApps=JSON.parse(GameBridge.listInstalledApps()); }catch(e){ allApps=[]; }
+    if(!allApps||allApps.length===0){ box.innerHTML=''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    renderAppList();
+  }
+  function renderAppList(){
+    var box=document.getElementById('appList');
+    var q=(document.getElementById('appSearch').value||'').trim().toLowerCase();
+    var map=getAllUsage();
+    var html='';
+    allApps.forEach(function(a,idx){
+      if(!showSystem && a.sys) return;
+      if(q && a.name.toLowerCase().indexOf(q)<0 && a.pkg.toLowerCase().indexOf(q)<0) return;
+      var mi=managedIndex(a.pkg), on=mi>=0;
+      var used= usageMin(a.pkg, map);
+      var color=AV_COLORS[(a.name.charCodeAt(0)+idx)%AV_COLORS.length];
+      html+='<div class="approw">'
+        +'<div class="ai" style="background:'+color+'">'+esc(a.name.charAt(0))+'</div>'
+        +'<div class="info"><div class="n">'+esc(a.name)+'</div><div class="p">'+esc(a.pkg)+'</div>'
+        +(on?'<div class="u">今日真实已用 '+used+' 分</div>':'')
+        +'</div>'
+        +'<div class="right">'
+        +(on? limitInputs(cfg.managedApps[mi]) : '')
+        +'<div class="toggle'+(on?' on':'')+'" data-pkg="'+esc(a.pkg)+'" data-name="'+esc(a.name)+'" onclick="onToggle(this)"><div class="knob"></div></div>'
+        +'</div></div>';
+    });
+    box.innerHTML= html || '<div class="empty">无匹配应用。</div>';
+  }
+
+  function limitInputs(a){
+    var h='<div class="lim"><span>工作日</span><input type="number" min="1" value="'+a.limit+'" onchange="onLimitChange(\''+esc(a.pkg)+'\',\'wd\',this.value)">分</div>';
+    if(cfg.weekendSplit){
+      h+='<div class="lim"><span>周末</span><input type="number" min="1" value="'+(a.limitWe||a.limit)+'" onchange="onLimitChange(\''+esc(a.pkg)+'\',\'we\',this.value)">分</div>';
+    }
+    return h;
+  }
+  window.onToggle=function(el){
+    var pkg=el.getAttribute('data-pkg'), name=el.getAttribute('data-name');
+    var mi=managedIndex(pkg);
+    if(mi>=0){ cfg.managedApps.splice(mi,1); }
+    else {
+      var def=parseInt((document.getElementById('batchLimit')||{}).value,10);
+      if(isNaN(def)||def<1) def=30;
+      cfg.managedApps.push({pkg:pkg,name:name,limit:def,limitWe:def});
+    }
+    saveCfg(); pushManaged();
+    renderAppList(); renderOverview(); renderStats(); refreshGuardBar();
+  };
+  window.onLimitChange=function(pkg,which,val){
+    var mi=managedIndex(pkg); if(mi<0) return;
+    var v=parseInt(val,10); if(isNaN(v)||v<1) v=1;
+    if(which==='we'){ cfg.managedApps[mi].limitWe=v; }
+    else { cfg.managedApps[mi].limit=v; }
+    saveCfg(); pushManaged();
+    renderOverview(); renderStats(); refreshGuardBar();
+  };
+  document.getElementById('appSearch').addEventListener('input', renderAppList);
+  document.getElementById('sysToggle').addEventListener('change', function(){ showSystem=this.checked; renderAppList(); });
+
+  /* ---------- 统计 ---------- */
+  function renderStats(){
+    var card=document.getElementById('statsCard');
+    if(cfg.managedApps.length===0){ card.innerHTML='<div class="empty">尚未选择受管控应用。</div>'; return; }
+    var map=getAllUsage();
+    var html='';
+    cfg.managedApps.forEach(function(a){
+      var used=usageMin(a.pkg,map), lim=effLimit(a), ratio=Math.min(1,used/lim), over=used>=lim;
+      var series=[];
+      if(NATIVE){ try{ series=JSON.parse(GameBridge.getUsageSeries(a.pkg,7)); }catch(e){ series=[]; } }
+      else { series=sampleSeries(a.pkg); }
+      var b=bonusMin(a.pkg);
+      html+='<div class="st-row"><div class="hd"><b>'+esc(a.name)+'</b><span class="v'+(over?' over':'')+'">'+used+' / '+lim+' 分'+(b>0?'（今日+'+b+'）':'')+'</span></div>'
+        +'<div class="bar'+(over?' over':'')+'"><i style="width:'+(ratio*100).toFixed(0)+'%"></i></div>';
+      if(series.length){
+        var max=Math.max.apply(null, series.map(function(x){return Math.round(x/60000);}).concat([lim]));
+        html+='<div class="week">';
+        var labs=['日','一','二','三','四','五','六'];
+        series.forEach(function(x,i){ var m=Math.round(x/60000); var h=max>0?(m/max*100):0;
+          var d=new Date(); d.setDate(d.getDate()-(series.length-1-i));
+          html+='<div class="d"><div class="col" style="height:'+Math.max(3,h).toFixed(0)+'%" title="'+m+'分"></div><div class="lab">'+labs[d.getDay()]+'</div></div>'; });
+        html+='</div>';
+      }
+      html+='<div style="display:flex;gap:8px;margin-top:10px;">'
+        +'<button class="btn ghost sm" style="flex:1;" onclick="addTime(\''+esc(a.pkg)+'\')">今日加时 15 分</button>'
+        +'<button class="btn ghost sm" style="flex:1;" onclick="exemptApp(\''+esc(a.pkg)+'\')">今日豁免</button>'
+        +'</div></div>';
+    });
+    card.innerHTML=html;
+  }
+
+  /** 今日加时：只放宽今天，不改每日基准限额（真实用量归零不了，用加时抵消） */
+  window.addTime=function(pkg){
+    var mi=managedIndex(pkg); if(mi<0) return;
+    if(NATIVE){ try{ GameBridge.addBonus(pkg,15); }catch(e){} }
+    else { PREVIEW_BONUS[pkg]=(PREVIEW_BONUS[pkg]||0)+15; }
+    renderStats(); renderOverview(); refreshGuardBar();
+    toast('已为 '+cfg.managedApps[mi].name+' 今日加时 15 分钟');
+  };
+
+  /** 今日豁免：把今天已经用掉的时长整体抵掉，让该应用今天重新可用 */
+  window.exemptApp=function(pkg){
+    var mi=managedIndex(pkg); if(mi<0) return;
+    if(!confirm('把「'+cfg.managedApps[mi].name+'」今天已用的时长整体抵掉，今天重新计时？')) return;
+    if(NATIVE){ try{ GameBridge.exemptToday(pkg); }catch(e){} }
+    else { PREVIEW_BONUS[pkg]=(PREVIEW_BONUS[pkg]||0)+999; }
+    renderStats(); renderOverview(); refreshGuardBar();
+    toast('已豁免「'+cfg.managedApps[mi].name+'」今日已用时长');
+  };
+
+  /* ---------- 孩子端 ----------
+     原则：孩子只关心一件事——「我还能玩多久」。
+     所以这里只出剩余分钟，不出现「已用 X / 限额 Y」这类家长向信息，
+     也不出现任何能改设置的按钮。 */
+  function renderKid(){
+    var list=document.getElementById('kidList'), empty=document.getElementById('kidEmpty'), done=document.getElementById('kidAllDone');
+    var playing=document.getElementById('kidPlaying');
+    if(cfg.managedApps.length===0){
+      list.innerHTML=''; empty.classList.remove('hidden');
+      if(done) done.classList.add('hidden');
+      if(playing) playing.textContent='';
+      hideLock();
+      return;
+    }
+    empty.classList.add('hidden');
+
+    var map=getAllUsage(), html='', allOver=true;
+    cfg.managedApps.forEach(function(a){
+      var used=usageMin(a.pkg,map), lim=effLimit(a), remain=Math.max(0,lim-used), over=used>=lim;
+      if(!over) allOver=false;
+      // 进度条表示「还剩多少」，不写数字，只做视觉提示
+      var pct=lim>0?Math.max(0,Math.min(100,remain/lim*100)):0;
+      var big = over ? '用完了' : (remain<1 ? '不到 1' : String(remain));
+      html+='<div class="kid-card'+(over?' over':'')+'">'
+        +'<div class="kt"><span class="nm">'+esc(a.name)+'</span>'
+        +'<span class="st">'+(over?'今天到此为止':'还能玩')+'</span></div>'
+        +'<div class="rem">'+big+(over?'':'<small>分钟</small>')+'</div>'
+        +'<div class="pbar"><i style="width:'+pct.toFixed(0)+'%"></i></div></div>';
+    });
+    list.innerHTML=html;
+    if(done) done.classList.toggle('hidden', !allOver);
+
+    var fg='';
+    if(NATIVE){ try{ fg=GameBridge.getForegroundPackage(); }catch(e){ fg=''; } }
+    var playingName='';
+    if(fg){ for(var i=0;i<cfg.managedApps.length;i++){ if(cfg.managedApps[i].pkg===fg){ playingName='正在用：'+cfg.managedApps[i].name; break; } } }
+    if(readGuard().curfew) playingName='现在是休息时间，先去睡觉吧';
+    if(playing) playing.textContent=playingName;
+
+    // 注意：这里**不再**自动弹全屏遮罩。
+    // 上一版只要任一应用超限就盖满黑屏且无出口，等于把界面锁死，已废弃。
+    // 真正超限时由原生层弹拦截页，孩子端只做状态展示。
+    hideLock();
+  }
+
+  function showLock(title, sub){
+    var ov=document.getElementById('lockOverlay');
+    if(title) document.getElementById('lockTitle').textContent=title;
+    if(sub) document.getElementById('lockSub').innerHTML=sub;
+    ov.classList.add('show');
+  }
+  function hideLock(){
+    var ov=document.getElementById('lockOverlay');
+    if(ov) ov.classList.remove('show');
+  }
+  document.getElementById('lockDismiss').onclick=function(){ hideLock(); };
+
+  /* ---------- 模式切换 ---------- */
+  function setSeg(m){
+    var p=document.getElementById('segParent'), c=document.getElementById('segChild');
+    if(m==='parent'){ p.classList.add('active'); c.classList.remove('active'); }
+    else { c.classList.add('active'); p.classList.remove('active'); }
+    document.getElementById('modeLabel').textContent = m==='parent'?'家长端':'孩子端';
+  }
+  function showParent(){ mode='parent'; setSeg('parent');
+    document.getElementById('parentView').classList.remove('hidden'); document.getElementById('childView').classList.add('hidden');
+    hideLock();
+    lsSet(MODE_KEY,'parent'); refreshPermStates(); refreshBanners(); refreshGuardBar(); renderOverview(); renderRank(); renderStats(); renderFocus(true); }
+  function showChild(){ mode='child'; setSeg('child');
+    document.getElementById('parentView').classList.add('hidden'); document.getElementById('childView').classList.remove('hidden');
+    hideLock();
+    lsSet(MODE_KEY,'child'); refreshBanners(); refreshGuardBar(); renderKid(); }
+  /* 密码尝试限制：默认 1234 太好猜，给个基本的门槛 */
+  var PW_TRY='gm_pw_try', PW_LOCK='gm_pw_lock';
+  /* 不用 window.prompt：WebView 默认不接管 onJsPrompt，prompt 会静默返回 null，
+     家长就永远进不去家长端。改成页面内的输入框，一定弹得出来。 */
+  function openPw(msg){
+    var m=document.getElementById('pwModal'), i=document.getElementById('pwModalInput');
+    if(!m||!i){ return false; }
+    document.getElementById('pwMsg').textContent=msg||'请输入家长密码';
+    i.value=''; m.classList.remove('hidden');
+    setTimeout(function(){ try{ i.focus(); }catch(e){} },60);
+    return true;
+  }
+  function closePw(){ var m=document.getElementById('pwModal'); if(m) m.classList.add('hidden'); }
+
+  function requestParent(){
+    if(!cfg.password){ showParent(); return; }
+    var lockUntil=parseInt(lsGet(PW_LOCK)||'0',10);
+    if(lockUntil>Date.now()){
+      alert('错太多次了，请 '+Math.ceil((lockUntil-Date.now())/1000)+' 秒后再试。');
+      return;
+    }
+    var hint = (cfg.password==='1234') ? '请输入家长密码（出厂默认 1234）' : '请输入家长密码';
+    openPw(hint);
+  }
+  function submitPw(){
+    var i=document.getElementById('pwModalInput');
+    var v=(i&&i.value)||'';
+    if(!v){ return; }
+    if(v===cfg.password){ lsSet(PW_TRY,'0'); closePw(); showParent(); return; }
+    var n=parseInt(lsGet(PW_TRY)||'0',10)+1;
+    if(n>=5){
+      lsSet(PW_TRY,'0'); lsSet(PW_LOCK,String(Date.now()+60000));
+      closePw(); alert('连续错 5 次，锁定 1 分钟。');
+    } else {
+      lsSet(PW_TRY,String(n));
+      document.getElementById('pwMsg').textContent='密码不对（第 '+n+' 次，错满 5 次锁 1 分钟）';
+      if(i) i.value='';
+    }
+  }
+  document.getElementById('segChild').onclick=function(){ showChild(); };
+  document.getElementById('segParent').onclick=function(){ if(mode==='child') requestParent(); else showParent(); };
+  /* 孩子端空状态里的出口：家长第一次装好，孩子端点一下就进设置 */
+  document.getElementById('kidToParent').onclick=function(){ requestParent(); };
+  document.getElementById('pwOk').onclick=function(){ submitPw(); };
+  document.getElementById('pwCancel').onclick=function(){ closePw(); };
+  document.getElementById('pwModalInput').addEventListener('keydown',function(e){
+    if(e.key==='Enter'||e.keyCode===13){ e.preventDefault(); submitPw(); }
+  });
+
+  /* ---------- 新手引导卡：可收起，也能再调出来 ---------- */
+  var GUIDE_KEY='gm_guide_hidden';
+  function renderGuide(){
+    var c=document.getElementById('guideCard'); if(!c) return;
+    if(lsGet(GUIDE_KEY)==='1') c.classList.add('hidden'); else c.classList.remove('hidden');
+  }
+  document.getElementById('guideHide').onclick=function(){
+    lsSet(GUIDE_KEY,'1'); renderGuide(); toast('已收起，可在「我的」里再调出来');
+  };
+  document.getElementById('guideShow').onclick=function(){
+    lsSet(GUIDE_KEY,'0'); renderGuide();
+    var tab=document.querySelector('#parentView .tab[data-page="overview"]'); if(tab) tab.click();
+    var box=document.querySelector('#parentView .pages'); if(box) box.scrollTop=0;
+    toast('已显示使用说明');
+  };
+
+  /* ---------- Tab ---------- */
+  var ptabs=document.querySelectorAll('#parentView .tab');
+  ptabs.forEach(function(t){
+    t.onclick=function(){
+      ptabs.forEach(function(x){x.classList.remove('active');});
+      t.classList.add('active');
+      document.querySelectorAll('#parentView .page').forEach(function(pg){pg.classList.remove('active');});
+      document.getElementById('p-'+t.dataset.page).classList.add('active');
+      if(t.dataset.page==='apps') loadApps();
+      if(t.dataset.page==='overview'){ renderOverview(); renderRank(); renderFocus(true); }
+      if(t.dataset.page==='stats') renderStats();
+      if(t.dataset.page==='me'){ refreshPermStates(); renderAudit(); renderVerLine(); }
+    };
+  });
+
+  /* ---------- 我的：按钮 ---------- */
+  document.getElementById('pwSave').onclick=function(){
+    var v=document.getElementById('pwInput').value.trim();
+    if(!v){ alert('密码不能为空'); return; }
+    if(v.length<4){ alert('密码至少 4 位。'); return; }
+    if(v==='1234' && !confirm('1234 是最容易被猜到的密码，确定要用？')) return;
+    cfg.password=v; saveCfg();
+    if(NATIVE){ try{ GameBridge.setParentPassword(v); }catch(e){} }
+    toast('家长密码已保存');
+  };
+  document.getElementById('enableOverlay').onclick=function(){ if(NATIVE){ try{GameBridge.requestOverlayPermission();}catch(e){} } };
+  document.getElementById('enableUsage').onclick=function(){ if(NATIVE){ try{GameBridge.openUsageSettings();}catch(e){} } };
+  document.getElementById('enableAcc').onclick=function(){ if(NATIVE){ try{GameBridge.openAccessibilitySettings();}catch(e){} } };
+  document.getElementById('enableAdmin').onclick=function(){ if(NATIVE){ try{GameBridge.requestAdmin();}catch(e){} } };
+  document.getElementById('enableBatt').onclick=function(){ if(NATIVE){ try{GameBridge.requestIgnoreBatteryOptimizations();}catch(e){} } };
+  document.getElementById('lockBtn').onclick=function(){
+    if(!confirm('立即锁定屏幕？这会锁住整台手机。')) return;
+    if(NATIVE){ try{ GameBridge.lockNow(); }catch(e){} }
+  };
+  document.getElementById('pause30').onclick=function(){ doPause(30); toast('已暂停管控 30 分钟'); };
+  document.getElementById('resumeNow').onclick=function(){ doResume(); toast('已恢复管控'); };
+  document.getElementById('resetAll').onclick=function(){
+    if(!confirm('确定清空所有管控应用与限额？')) return;
+    cfg.managedApps=[]; saveCfg(); pushManaged();
+    if(NATIVE){ try{ GameBridge.stopMonitor(); }catch(e){} }
+    renderAppList(); renderOverview(); renderStats(); renderKid(); refreshGuardBar();
+  };
+
+  /* ---------- 彻底解除管控（卸载前置条件） ---------- */
+  document.getElementById('releaseAll').onclick=function(){
+    if(!confirm('将停止监控、清空全部管控配置、取消设备管理员。\n\n完成后本应用才允许被卸载。确定继续？')) return;
+    if(NATIVE){ try{ GameBridge.releaseAll(); }catch(e){} }
+    cfg.managedApps=[]; saveCfg(); pushManaged();
+    renderAppList(); renderOverview(); renderStats(); renderKid(); refreshGuardBar();
+    alert('已彻底解除。\n现在可以正常卸载本应用了。');
+  };
+
+  /* ---------- 批量设置限额 ---------- */
+  document.getElementById('batchApply').onclick=function(){
+    if(cfg.managedApps.length===0){ alert('还没有选择任何受管控应用'); return; }
+    var v=parseInt(document.getElementById('batchLimit').value,10);
+    if(isNaN(v)||v<1) v=1;
+    cfg.managedApps.forEach(function(a){ a.limit=v; a.limitWe=v; });
+    saveCfg(); pushManaged();
+    renderAppList(); renderOverview(); renderStats(); refreshGuardBar();
+    toast('已把 '+cfg.managedApps.length+' 个应用统一设为每天 '+v+' 分钟');
+  };
+
+  /* ---------- 专注模式 ---------- */
+  var focusMin=45, focusEndAt=0;
+  function secText(sec){
+    sec=Math.max(0,sec|0);
+    var m=Math.floor(sec/60), ss=sec%60;
+    return (m<10?'0':'')+m+':'+(ss<10?'0':'')+ss;
+  }
+  function renderFocus(force){
+    var idle=document.getElementById('focusIdle'), run=document.getElementById('focusRunning');
+    if(!idle || !run) return;
+    var g=readGuard();
+    var active=!!g.focus, remain=g.focusRemain||0;
+    if(active){
+      if(force || !focusEndAt || remain*60000 > (focusEndAt-Date.now())+7000){
+        focusEndAt=Date.now()+remain*60000;
+      }
+      idle.classList.add('hidden'); run.classList.remove('hidden');
+      var el=document.getElementById('focusCount');
+      if(el) el.textContent=secText(Math.round((focusEndAt-Date.now())/1000));
+    } else {
+      focusEndAt=0;
+      idle.classList.remove('hidden'); run.classList.add('hidden');
+    }
+  }
+  function focusTick(){
+    if(!focusEndAt) return;
+    var pg=document.getElementById('p-overview');
+    if(!pg || !pg.classList.contains('active') || mode!=='parent') return;
+    var left=Math.round((focusEndAt-Date.now())/1000);
+    var el=document.getElementById('focusCount');
+    if(el) el.textContent=secText(left);
+    if(left<=0){ focusEndAt=0; renderFocus(true); refreshGuardBar(); }
+  }
+  setInterval(focusTick, 1000);
+
+  (function bindFocus(){
+    var chips=document.querySelectorAll('#focusChips .chip');
+    for(var i=0;i<chips.length;i++){
+      chips[i].onclick=(function(c){
+        return function(){
+          for(var j=0;j<chips.length;j++) chips[j].classList.remove('active');
+          c.classList.add('active');
+          focusMin=parseInt(c.dataset.min,10)||45;
+        };
+      })(chips[i]);
+    }
+    var st=document.getElementById('focusStart');
+    if(st) st.onclick=function(){
+      if(!NATIVE){ toast('网页预览不支持真拦截'); return; }
+      if(cfg.managedApps.length===0){ alert('先去「应用」页勾选要管控的应用，专注模式才有对象。'); return; }
+      try{ GameBridge.startFocus(focusMin); }catch(e){}
+      toast('专注开始：'+focusMin+' 分钟');
+      renderFocus(true); refreshGuardBar();
+    };
+    var sp=document.getElementById('focusStop');
+    if(sp) sp.onclick=function(){
+      if(NATIVE){ try{ GameBridge.stopFocus(); }catch(e){} }
+      focusEndAt=0;
+      toast('专注已结束');
+      renderFocus(true); refreshGuardBar();
+    };
+  })();
+
+  /* ---------- 崩溃日志 ---------- */
+  function renderVerLine(){
+    var el=document.getElementById('verLine');
+    if(!el) return;
+    if(!NATIVE){ el.textContent='当前版本：网页预览模式（没有原生信息）'; return; }
+    var v='';
+    try{ v=GameBridge.getVersion(); }catch(e){ v=''; }
+    el.textContent='当前版本：'+(v||'读取失败');
+  }
+  document.getElementById('crashView').onclick=function(){
+    var box=document.getElementById('crashBox');
+    box.classList.remove('hidden');
+    if(!NATIVE){ box.textContent='网页预览模式没有原生崩溃日志。'; return; }
+    var txt='';
+    try{ txt=GameBridge.getLastCrash(); }catch(e){ txt=''; }
+    box.textContent = txt ? txt : '没有崩溃记录。说明上次运行是正常的。';
+  };
+  document.getElementById('crashCopy').onclick=function(){
+    var box=document.getElementById('crashBox');
+    var t=box.textContent||'';
+    if(!t || box.classList.contains('hidden')){ toast('先点「查看最近一次崩溃」'); return; }
+    if(NATIVE){
+      try{ GameBridge.copyText(t); return; }catch(e){}
+    }
+    // 浏览器兜底
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(t); toast('已复制'); return;
+      }
+    }catch(e){}
+    toast('请长按选中文字复制');
+  };
+  document.getElementById('crashClear').onclick=function(){
+    if(NATIVE){ try{ GameBridge.clearCrash(); }catch(e){} }
+    var box=document.getElementById('crashBox');
+    box.textContent=''; box.classList.add('hidden');
+    toast('已清除崩溃记录');
+  };
+
+  /* ---------- 处理方式（策略）切换 ---------- */
+  function bindPolicyRadios(){
+    var rs=document.querySelectorAll('input[name="policy"]');
+    for(var i=0;i<rs.length;i++){
+      rs[i].checked = (rs[i].value === (cfg.policy||'block'));
+      rs[i].onchange = function(){
+        if(!this.checked) return;
+        cfg.policy=this.value; saveCfg(); pushManaged();
+        if(this.value!=='block'){
+          toast('已切换为更强制的方式，请确认对应权限已授予');
+          refreshPermStates();
+        }
+      };
+    }
+  }
+  bindPolicyRadios();
+
+  /* ---------- 额度与时段 ---------- */
+  function bindQuotaSettings(){
+    var ws=document.getElementById('weekendSplit');
+    var tl=document.getElementById('totalLimit');
+    var co=document.getElementById('curfewOn');
+    var cs=document.getElementById('curfewStart');
+    var ce=document.getElementById('curfewEnd');
+    var nb=document.getElementById('notifyBefore');
+    if(!ws||!tl||!co) return;
+
+    ws.checked = !!cfg.weekendSplit;
+    tl.value = cfg.totalLimit||0;
+    co.checked = !!(cfg.curfew&&cfg.curfew.on);
+    cs.value = (cfg.curfew&&cfg.curfew.start)||'22:00';
+    ce.value = (cfg.curfew&&cfg.curfew.end)||'07:00';
+    nb.value = (typeof cfg.notifyBefore==='number')?cfg.notifyBefore:5;
+
+    ws.onchange=function(){ cfg.weekendSplit=this.checked; saveCfg(); pushManaged(); renderAppList(); renderStats(); };
+    tl.onchange=function(){ var v=parseInt(this.value,10); if(isNaN(v)||v<0) v=0; cfg.totalLimit=v; saveCfg(); pushManaged(); renderOverview(); refreshGuardBar(); };
+    co.onchange=function(){ cfg.curfew.on=this.checked; saveCfg(); pushManaged(); refreshGuardBar(); toast(this.checked?'免打扰时段已开启':'免打扰时段已关闭'); };
+    cs.onchange=function(){ cfg.curfew.start=this.value||'22:00'; saveCfg(); pushManaged(); };
+    ce.onchange=function(){ cfg.curfew.end=this.value||'07:00'; saveCfg(); pushManaged(); };
+    nb.onchange=function(){ var v=parseInt(this.value,10); if(isNaN(v)||v<0) v=0; if(v>60) v=60; this.value=v; cfg.notifyBefore=v; saveCfg(); pushManaged(); };
+  }
+  bindQuotaSettings();
+
+  /* ---------- 操作记录 ---------- */
+  var AUDIT_LABEL={bonus:'加时',exempt:'豁免',pause:'暂停管控',resume:'恢复管控',block:'触发拦截'};
+  function appName(pkg){
+    for(var i=0;i<cfg.managedApps.length;i++) if(cfg.managedApps[i].pkg===pkg) return cfg.managedApps[i].name;
+    for(var j=0;j<allApps.length;j++) if(allApps[j].pkg===pkg) return allApps[j].name;
+    return pkg;
+  }
+  function renderAudit(){
+    var box=document.getElementById('auditList'); if(!box) return;
+    if(!NATIVE){ box.innerHTML='<div class="empty" style="padding:14px 0;">网页预览没有操作记录。</div>'; return; }
+    var arr=[];
+    try{ arr=JSON.parse(GameBridge.getAuditLog()); }catch(e){ arr=[]; }
+    if(!arr.length){ box.innerHTML='<div class="empty" style="padding:14px 0;">还没有操作记录。</div>'; return; }
+    var html='';
+    arr.forEach(function(it){
+      var d=new Date(it.t||0);
+      var hm=(d.getMonth()+1)+'/'+d.getDate()+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+      var label=AUDIT_LABEL[it.type]||it.type;
+      var name=it.pkg? appName(it.pkg) : '';
+      var detail=(it.type==='bonus'||it.type==='exempt')?(' '+(it.min||0)+' 分'):'';
+      html+='<div class="au-row"><span class="au-time">'+hm+'</span>'
+        +'<span class="au-txt"><span class="au-type">'+label+'</span>'
+        +(name?(' · '+esc(name)):'')+detail+'</span></div>';
+    });
+    box.innerHTML=html;
+  }
+  document.getElementById('auditClear').onclick=function(){
+    if(NATIVE){ try{ GameBridge.clearAuditLog(); }catch(e){} }
+    renderAudit();
+    toast('操作记录已清空');
+  };
+
+  /* ---------- 工具 ---------- */
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+  /* ---------- 轮询刷新（真实用量） ---------- */
+  setInterval(function(){
+    if(!document.getElementById('childView').classList.contains('hidden')) renderKid();
+    if(document.getElementById('parentView') && !document.getElementById('parentView').classList.contains('hidden')){
+      var ap=document.querySelector('#parentView .tab.active');
+      if(ap){ var p=ap.dataset.page; if(p==='overview'){ renderOverview(); renderRank(); } if(p==='stats') renderStats(); if(p==='apps') renderAppList(); }
+      refreshPermStates();
+    }
+    refreshBanners(); refreshGuardBar();
+  }, 5000);
+
+  /* ---------- 原生回调：App 从后台/设置页回到前台时刷新真实数据 ---------- */
+  window.__onNativeResume = function(){
+    try{
+      hideLock();
+      refreshBanners(); refreshPermStates(); refreshGuardBar();
+      if(mode==='child'){ renderKid(); }
+      else { renderOverview(); renderRank(); renderStats(); renderAudit(); }
+      pushManaged();
+    }catch(e){}
+  };
+
+  /* ---------- 启动：默认进孩子端（家长要进家长端必须输密码） ---------- */
+  try{
+    // 把网页里的配置同步给原生：限额清单 + 执行策略 + 家长密码
+    pushManaged();
+    if(NATIVE && cfg.password){ try{ GameBridge.setParentPassword(cfg.password); }catch(e){} }
+    showChild();
+  }catch(e){
+    // 兜底：任何异常都不能白屏，也不能把孩子锁在外面
+    try{ showChild(); }catch(e2){ try{ showParent(); }catch(e3){} }
+  }
+  renderGuide(); refreshBanners(); refreshGuardBar(); renderVerLine(); renderFocus(true);
+})();
+</script>
+</body>
+</html>
