@@ -109,7 +109,20 @@ WebView 的渲染进程是独立进程。内存紧张、或厂商 ROM 清理后�
 
 包名换了，就意味着它是一个**全新安装的应用**，不会跟手机里任何残留的系统安装记录打架（设备管理员残留、旧签名记录都不会再拦它）。代码包名 `com.example.gamemanager` 没动，`applicationId` 单独改，避免改动几百处引用。
 
-### 本版产物核验（不是"构建成功"就算数，已逐个查过）
+### v3.0 产物核验（不是"构建成功"就算数，已逐个查过）
+
+| 检查项 | 结果 |
+|---|---|
+| CI | run `41826577607` · build ✅ · pages ✅ |
+| Release | `v1.0.1` · `KidTime-v3.0-1.apk` · **2,106,103 字节** |
+| SHA256 | `c5f902619ff36207bd9de140c156b4c5b4a31a70891ceb0ed5ef5ecbd38f621b` |
+| 真实包名（解析 `AndroidManifest.xml` 二进制，不是 grep 字符串） | `package = com.junge.kidtime` / `versionName = 3.0` |
+| 签名证书 SHA256 | `80:48:4E:2E:7D:C5:74:36:AF:36:EC:96:60:5B:F2:38:27:5B:4B:3F:05:FF:6B:C5:9A:24:D3:0D:D1:7E:F5:53`——用 `keytool -exportcert` 导出 `gm-release.jks` 的证书 DER，在 APK 里**逐字节命中**（偏移 `0x1FEDF4`），不是看指纹字符串猜的 |
+| `assets/index.html` | 74,696 字节，含 `--bg:#f6f3ec` / `--primary:#2f6b52` / `--warning:#b87333` / `pwModal` / `四步就能用` / `kidAllDone`；孩子端卡片里**已无**"今日已用/限额" |
+| dex | 含 `Guard / Enforcer / OverlayBlocker / BlockActivity / MonitorService / UsageUtil / GameBridge` |
+| Pages | <https://qingjiaowojunge.github.io/kidtime/> 返回 200，版本徽标 `v3.0 (1)`，主按钮指向 `KidTime-v3.0-1.apk`；该 URL 返回 `application/vnd.android.package-archive`、长度与 Release **完全一致**（同一份） |
+
+### v2.5 产物核验（历史）
 
 | 检查项 | 结果 |
 |---|---|

@@ -153,7 +153,8 @@ def main():
         remote_base_tree = remote_commit["tree"]["sha"]
         print("远端 %s: %s (tree %s)" % (args.branch, remote_sha[:10], remote_base_tree[:10]))
     except urllib.error.HTTPError as ex:
-        if ex.code != 404:
+        # 空仓库时 GitHub 返回 409 Conflict（"Git Repository is empty"），不是 404
+        if ex.code not in (404, 409):
             raise
         first_push = True
         remote_sha = None
@@ -206,7 +207,7 @@ def main():
         try:
             api.call("GET", "/repos/%s/git/blobs/%s" % (args.repo, e["sha"]))
         except urllib.error.HTTPError as ex:
-            if ex.code != 404:
+            if ex.code not in (404, 409):   # 空仓库同样是 409
                 raise
             raw = git("cat-file", "blob", e["sha"], binary=True)
             up = api.call("POST", "/repos/%s/git/blobs" % args.repo, {
