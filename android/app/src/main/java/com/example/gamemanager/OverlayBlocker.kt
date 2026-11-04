@@ -32,13 +32,19 @@ import android.widget.TextView
 object OverlayBlocker {
 
     private val main = Handler(Looper.getMainLooper())
-    private var root: View? = null
+    @Volatile private var root: View? = null
     @Volatile private var currentPkg: String = ""
 
     fun canOverlay(ctx: Context): Boolean =
         try { Settings.canDrawOverlays(ctx) } catch (e: Exception) { false }
 
-    fun isShowing(): Boolean = root != null
+    /**
+     * "真的还挂在屏幕上"才算显示中。窗口 token 被系统摘掉时 root 还在、
+     * 但 isAttachedToWindow 会变 false；MonitorService 每轮据此复位冷却标志。
+     */
+    fun isShowing(): Boolean = try {
+        root?.isAttachedToWindow == true
+    } catch (e: Throwable) { false }
 
     fun show(ctx: Context, pkg: String) {
         currentPkg = pkg

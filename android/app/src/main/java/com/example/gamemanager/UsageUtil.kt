@@ -24,6 +24,8 @@ object UsageUtil {
     @Volatile private var evFg: String = ""
     /** 最近一次"确认"前台的时刻，用来判断 evFg 是不是已经陈旧到不能信 */
     @Volatile private var evFgAt: Long = 0L
+    /** queryUsageStats 兜底的探测节流：扫一天数据不便宜，失败也别每 5 秒试一次 */
+    @Volatile private var lastStatsProbeAt: Long = 0L
 
     /**
      * 无障碍服务收到窗口切换时同步过来。
@@ -76,7 +78,8 @@ object UsageUtil {
 
         // queryEvents 在 Doze / 省电模式下可能返回空。此时若已知前台超过 1 分钟没刷新，
         // 拿 queryUsageStats 的 lastTimeUsed 交叉校正一次，避免拿着旧包名永远不拦。
-        if (!gotFg && now - evFgAt > 60_000L) {
+        if (!gotFg && now - evFgAt > 60_000L && now - lastStatsProbeAt > 60_000L) {
+            lastStatsProbeAt = now
             val guess = recentForegroundByStats(usm, now)
             if (guess.isNotEmpty()) { evFg = guess; evFgAt = now }
         }

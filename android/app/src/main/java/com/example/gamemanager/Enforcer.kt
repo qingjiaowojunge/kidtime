@@ -87,11 +87,11 @@ object Enforcer {
         try {
             ctx.startActivity(i)
             blockShowing = true
-            lastEnforceText = "拦截页 Activity · " + pkg + " · " + nowText()
+            recordEnforce("拦截页 Activity · " + pkg, true)
         } catch (e: Exception) {
             // 通道三：降级成通知，不崩、不锁屏；并释放冷却票据，下一轮立刻重试
             notifyBlocked(ctx, pkg)
-            lastEnforceText = "拦截页起不来，已发通知 · " + pkg
+            recordEnforce("拦截页起不来，已发通知 · " + pkg, false)
             try { Guard.clearStrike(pkg) } catch (e2: Throwable) { }
         }
     }

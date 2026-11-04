@@ -46,6 +46,12 @@ class MonitorService : Service() {
     /** 上一次通知栏文案，没变化就不重复 notify，省电也避免通知栏抖 */
     private var lastState: String = ""
 
+    /**
+     * 必须显式返回 START_STICKY：targetSdk >= 5 时 Service 基类默认返回 START_NOT_STICKY，
+     * 系统杀掉进程后不会重建服务，就只能全靠看门狗 / 无障碍拉回。
+     */
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = Service.START_STICKY
+
     override fun onCreate() {
         super.onCreate()
         try { Guard.init(this) } catch (e: Throwable) { }
@@ -94,6 +100,14 @@ class MonitorService : Service() {
         lastTickAt = System.currentTimeMillis()
         // 通知栏文案先刷新：即使后面因为暂停/没权限提前返回，通知也应该是当前的
         try { refreshNotification() } catch (e: Throwable) { }
+
+        // 拦截层可能已被系统摘掉窗口（ROM 清理 / 权限撤销），但静态标志还留在 true。
+        // 不校验的话冷却条件会误判"拦截页仍在显示"，白白留出 20 秒不设防。
+        if (Enforcer.blockShowing && !OverlayBlocker.isShowing()) {
+            Enforcer.blockShowing = false
+            Guard.clearAllStrikes()
+            lastResult = "拦截页窗口已被系统摘掉，已重新布防"
+        }
 
         if (Guard.isPausedNow()) { lastResult = "管控已暂停，本轮不拦"; return }
         if (!Guard.hasRules()) { lastResult = "受管清单是空的，没东西可拦"; return }
