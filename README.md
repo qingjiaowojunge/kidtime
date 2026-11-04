@@ -190,11 +190,12 @@ WebView 的渲染进程是独立进程。内存紧张、或厂商 ROM 清理后�
 
 | 检查项 | 结果 |
 |---|---|
-| CI | 待构建（出包后补 run id / commit / 字节数 / sha256） |
-| 产物 | `KidTime-v3.4-8.apk` · 下载页徽标必须为 `v3.4 (8)` |
-| 签名 | 固定 `gm-release.jks`，与 v3.3 (7) 同证书，**可直接覆盖安装，不必卸载** |
-| 包内 | `assets/index.html` 必须含「视觉增强层 · 暖纸感」、`.kid-hd .play:empty`、`kid-card::after`；功能字符串与 v3.3 (7) 一致 |
-| 边界 | 只改 CSS；dex / AXML / 权限清单相对 v3.3 (7) 不变 |
+| CI | run `41845480059` · build ✅ · pages ✅ · 远端 commit `bc9fd9e2` |
+| 产物 | `KidTime-v3.4-8.apk` · **2,120,215 字节** · sha256 `94613bf1cd819a1d186deaa30614bdf68fc29238ee51ad448a86f99a067412b5` · 下载页徽标 `v3.4 (8)` 且页面 SHA256 与实际包一致 |
+| 签名 | 固定 `gm-release.jks`（899 字节证书 DER 在 APK 偏移 `2106644` 逐字节命中），与 v3.3 (7) 同证书，**可直接覆盖安装，不必卸载** |
+| 包内 | `assets/index.html` 98,684 字节，含「视觉增强层 · 暖纸感」、`.kid-hd .play:empty`、`kid-card::after`；四步引导 / `pwModal` / 不建议启用 / 自检面板 / `renderKid` / `showChild` 等功能字符串与 v3.3 (7) 一致 |
+| 边界 | 只改 CSS；dex / AXML / 权限清单相对 v3.3 (7) 不变（`index.html` diff 为 +280 / -0） |
+| 下载页 | 主按钮指向 `KidTime-v3.4-8.apk`，无 `KidTime-v3.3-7.apk` 残留；页面带 `no-store`；APK `content-type=application/vnd.android.package-archive` |
 
 ### v3.3 (7) 产物核验（历史版本）
 
