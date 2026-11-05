@@ -1000,6 +1000,7 @@
     try{ c=JSON.parse(lsGet(CFG_KEY)); }catch(e){}
     if(!c) c = { password:'1234', managedApps:[] };
     // 旧版本配置自动补齐新字段（不破坏已有数据）
+    if(!c.password) c.password='1234';   // 导入配置缺密码时也要有默认值
     if(!c.managedApps) c.managedApps=[];
     if(!c.policy) c.policy='block';
     if(typeof c.weekendSplit!=='boolean') c.weekendSplit=false;
@@ -1689,7 +1690,9 @@
   document.getElementById('releaseAll').onclick=function(){
     askConfirm('彻底解除管控','会停止监控、清空全部管控配置、取消设备管理员。完成后本应用才允许被卸载。确定继续？',function(){
       if(NATIVE){ try{ GameBridge.releaseAll(); }catch(e){} }
-      cfg.managedApps=[]; saveCfg(); pushManaged();
+      // 原生 releaseAll 内部已清规则并停服务；这里再 pushManaged 会经
+      // setManagedApps → startMonitorInternal 把前台服务重新拉起来。
+      cfg.managedApps=[]; saveCfg();
       renderAppList(); renderOverview(); renderStats(); renderKid(); renderWeek(true);
       renderRequests(); renderKidReqBar(); refreshGuardBar();
       toast('已彻底解除，现在可以正常卸载本应用了');
@@ -1919,7 +1922,7 @@
   var cfAction=null;
   function askConfirm(title,msg,fn){
     var m=document.getElementById('confirmModal');
-    if(!m){ if(fn){ try{ fn(); }catch(e){} } return; }
+    if(!m) return;   // 弹层不在就什么都不做，绝不跳过确认直接执行敏感动作
     var t=document.getElementById('cfTitle'), ms=document.getElementById('cfMsg');
     if(t) t.textContent=title;
     if(ms) ms.textContent=msg;
