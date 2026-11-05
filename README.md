@@ -208,11 +208,13 @@ WebView 的渲染进程是独立进程。内存紧张、或厂商 ROM 清理后�
 
 | 检查项 | 结果 |
 |---|---|
-| CI | 待构建（出包后补 run id / commit / 字节数 / sha256） |
-| 产物 | `KidTime-v3.5-9.apk` · 下载页徽标必须为 `v3.5 (9)` |
-| 签名 | 固定 `gm-release.jks`，与 v3.4 (8) 同证书，**可直接覆盖安装，不必卸载** |
-| 包内 | `assets/index.html` 必须含「v3.5 新功能层」「孩子申请加时」「本周报告」「配置备份与批量设置」「额度模板」、`askConfirm`；且原有「视觉增强层 · 暖纸感」「自检：为什么没拦住」「不建议启用」仍在 |
+| CI | run `42023280750` · build ✅ · pages ✅ · 远端 commit `ce9208d0` |
+| 产物 | `KidTime-v3.5-9.apk` · **2,129,883 字节** · sha256 `3c63004e9743ea97c6737734a0953383931ec0c124a4e6db77bbc4c978daa250` · 下载页徽标 `v3.5 (9)` 且页面 SHA256 与实际包一致 |
+| 签名 | 固定 `gm-release.jks`（899 字节证书 DER 在 APK 偏移 `2116312` 逐字节命中），与 v3.4 (8) 同证书，**可直接覆盖安装，不必卸载** |
+| 包内 | `assets/index.html` 129,229 字节，14 个新功能标记 + 11 个原有功能标记全部在位；`confirm/alert/prompt` 残留 0；127 个 DOM id / 115 处引用零缺失 |
+| 桥接 | 前端调用的 38 个 `GameBridge.*` 方法在 `GameBridge.kt` 的 49 个定义中**零缺失**，不存在调用未定义接口导致 JavaBridge 线程崩溃的风险 |
 | 边界 | 只改 `index.html` + `build.gradle` 版本号；Kotlin / Manifest / 权限清单相对 v3.4 (8) 不变 |
+| 下载页 | 主按钮指向 `KidTime-v3.5-9.apk`，无 v3.4 / v3.3 旧包链接；页面带 `no-store`；APK `content-type=application/vnd.android.package-archive` |
 
 ### v3.4 (8) 产物核验（历史版本）
 
