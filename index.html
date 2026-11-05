@@ -578,6 +578,44 @@
   #reqModal .fchips .chip{flex:1;padding:9px 2px;border-radius:10px;}
   #reqModal select,#reqModal textarea{width:100%;padding:10px 11px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:var(--surface);color:var(--text);font-family:inherit;}
   #reqModal textarea{min-height:62px;resize:vertical;line-height:1.5;}
+
+  /* ============================================================
+     v3.6 体验升级层（versionCode 11 / versionName 3.6）
+     ①「我的」页 10 张卡收成常用 / 全部两级，零基础家长不被吓住；
+     ② 家长可以主动加时，不必等孩子申请；
+     ③ 待审申请在底部导航出角标，切到别的页也不会漏；
+     ④ 孩子端补日期眉标（只有日期，没有任何额度 / 设置信息）。
+     原则同上一轮：颜色全走 Token；轮询重绘的区域一律不加动画。
+     ============================================================ */
+  .mebar{margin:0 0 14px;padding:14px;border-radius:16px;
+    background:linear-gradient(135deg,#eef4ef,#f8f6ef);
+    border:1px solid var(--border);box-shadow:0 1px 2px rgba(60,48,30,.04);}
+  .mebar .mb-t{font-size:13px;color:var(--primary-600);font-weight:800;letter-spacing:.3px;}
+  .mebar .mb-s{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.65;}
+  .mebar .mb-acts{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap;}
+  .mebar .mb-btn{flex:1;min-width:92px;padding:9px 6px;border:1px solid var(--border);
+    border-radius:10px;background:var(--surface);color:var(--primary-600);
+    font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .mebar .mb-btn:active{background:var(--primary-50);}
+  .mebar .mb-btn.main{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .mebar .mb-btn.main:active{background:var(--primary-600);}
+
+  /* 底部导航：待审申请角标（绝对定位，不占 flex 位） */
+  .tabdot{position:absolute;top:-2px;left:56%;min-width:17px;height:17px;padding:0 4px;
+    border-radius:9px;background:var(--danger);color:#fff;font-size:10.5px;font-weight:800;
+    line-height:17px;text-align:center;box-shadow:0 0 0 2px var(--surface);}
+
+  /* 孩子端日期眉标 */
+  .kid-hd .kd{font-size:10.5px;font-weight:700;letter-spacing:2.2px;color:#8a9a90;margin-bottom:9px;}
+
+  /* 临时通融卡 */
+  .quick-card select{width:100%;padding:10px 11px;border:1px solid var(--border);
+    border-radius:10px;font-size:13px;background:var(--surface);color:var(--text);font-family:inherit;}
+  .quick-card .lb{font-size:12px;color:var(--muted);margin:12px 0 6px;font-weight:700;}
+  .quick-card .fchips{margin-top:9px;}
+  .quick-card .fchips .chip{padding:9px 2px;border-radius:10px;}
+  .quick-card .minibar .btn{margin-top:0;}
+  .quick-empty{font-size:12.5px;color:var(--muted);line-height:1.7;}
 </style>
 </head>
 <body>
@@ -636,6 +674,27 @@
             <button class="btn ghost sm" id="reqClearDone" type="button">清掉已处理记录</button>
           </div>
         </div>
+
+        <!-- v3.6：家长主动加时。放在申请卡下面，收起四步引导后首屏就够得着 -->
+        <div class="card quick-card" id="quickCard">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M19 16v6M16 19h6"/></svg>临时通融</h3>
+          <div id="bonusWrap">
+            <div class="lb">今天想给哪个应用多留一点时间</div>
+            <select id="bonusApp"></select>
+            <div class="fchips" id="bonusChips">
+              <button class="chip" data-min="5" type="button">5 分</button>
+              <button class="chip active" data-min="10" type="button">10 分</button>
+              <button class="chip" data-min="15" type="button">15 分</button>
+              <button class="chip" data-min="30" type="button">30 分</button>
+            </div>
+            <div class="minibar">
+              <button class="btn" id="bonusApply" type="button">今天再给 10 分钟</button>
+              <button class="btn red" id="lockBtn" type="button">一键锁机</button>
+            </div>
+          </div>
+          <div class="quick-empty hidden" id="bonusEmpty">还没有勾选要管的应用。先到「应用」页挑几个，才能给它们加时。</div>
+          <div class="note">加时只作用于<b>今天</b>，不改每天的基础额度，孩子端会立刻看到新的剩余时间。超额后系统按真实用量自动处理（默认只弹拦截页，不锁屏）。</div>
+        </div>
         <div class="card">
           <div class="ov">
             <div class="ring">
@@ -675,10 +734,6 @@
             <button class="btn red" id="focusStop" style="margin-top:10px;">结束专注</button>
           </div>
           <div class="note">只作用于「应用」页勾选的那些应用。电话、短信、相机这些没勾选的不受影响，不会被误锁。</div>
-        </div>
-        <div class="card">
-          <button class="btn red" id="lockBtn">一键锁机</button>
-          <div class="note">超额后系统按真实用量自动处理（默认只弹拦截页，不锁屏）。</div>
         </div>
       </div>
 
@@ -735,13 +790,23 @@
 
       <!-- 我的 -->
       <div class="page" id="p-me">
-        <div class="card">
+        <!-- 常用 / 全部两级：默认只留前 4 张卡，排障与危险操作收起来 -->
+        <div class="mebar" id="meBar">
+          <div class="mb-t" id="meHint">常用设置</div>
+          <div class="mb-s" id="meDesc">下面只显示平时会用到的几项。排障、记录、备份和卸载前置操作都收在「展开全部设置」里。</div>
+          <div class="mb-acts">
+            <button class="mb-btn" id="mePause" type="button">暂停 30 分钟</button>
+            <button class="mb-btn" id="meDiag" type="button">一键自检</button>
+            <button class="mb-btn main" id="meAdvBtn" type="button">展开全部设置</button>
+          </div>
+        </div>
+        <div class="card" id="pwCard">
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>家长密码</h3>
           <input class="field" id="pwInput" type="password" placeholder="设置家长密码">
           <button class="btn ghost sm" id="pwSave">保存密码</button>
           <div class="note">进入家长端需输入此密码，防止孩子篡改设置。默认 1234。</div>
         </div>
-        <div class="card">
+        <div class="card" id="permCard">
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/></svg>系统能力授权</h3>
           <div class="perm-row"><span>显示在其他应用上层（拦截页必需）</span><span id="ovlState" class="perm-state no">未授予</span></div>
           <div class="perm-row"><span>使用情况访问（真实时长）</span><span id="usageState" class="perm-state no">未授予</span></div>
@@ -756,7 +821,7 @@
           <div class="note">「悬浮窗」「用量访问」是必做的；「无障碍」和「电池白名单」强烈建议开——前者让拦截从"最多等 5 秒"变成"当场拦"，后者防止系统把监控清掉。<br><b>诚实边界</b>：设备管理员只能锁屏，不能真正禁用游戏。要真禁用应用需要「设备所有者」权限，普通手机装不了，所以它默认关闭，也不推荐开。</div>
         </div>
 
-        <div class="card">
+        <div class="card" id="policyCard">
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>超额后怎么处理</h3>
           <label class="optrow"><input type="radio" name="policy" value="block" checked>
             <span><b>只弹全屏拦截页</b><div class="od">孩子退不出去，但手机不锁死。不需要无障碍和设备管理员，最稳。</div></span></label>
@@ -765,7 +830,7 @@
           <label class="optrow"><input type="radio" name="policy" value="lock">
             <span><b>拦截页 + 直接锁屏</b><div class="od">最强制，会锁住整台手机。需要设备管理员，且会打断你自己的操作，慎用。</div></span></label>
         </div>
-        <div class="card">
+        <div class="card" id="quotaCard">
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>额度与时段</h3>
           <label class="optrow"><input type="checkbox" id="weekendSplit">
             <span><b>工作日 / 周末分开设</b><div class="od">关闭时周末沿用工作日的限额。</div></span></label>
@@ -837,7 +902,8 @@
           </div>
           <div class="note">重设只改每日基准分钟数，不动今天的加时和已用时长。恢复配置会覆盖当前设置，操作前会再确认一次。</div>
         </div>
-        <div class="card">
+        <!-- 含「彻底解除管控」：卸载前置条件，永远不能被折叠藏起来 -->
+        <div class="card" id="pauseCard">
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>暂停 / 重置</h3>
           <button class="btn ghost sm" id="pause30" style="width:100%;">暂停管控 30 分钟</button>
           <button class="btn ghost sm" id="resumeNow" style="margin-top:8px;width:100%;">立即恢复管控</button>
@@ -851,13 +917,13 @@
           <button class="btn ghost sm" id="guideShow" style="width:100%;">重新显示「四步就能用」</button>
           <div class="note">孩子端点右上角「孩子」随时可以回到孩子端；点「家长」要输密码。</div>
         </div>
-        <div class="note">v3.5 · 数据全部来自手机真实用量（UsageStatsManager）与已装应用（PackageManager）；加时申请与周报只存在本机，不上传。</div>
+        <div class="note">v3.6 · 数据全部来自手机真实用量（UsageStatsManager）与已装应用（PackageManager）；加时申请、周报与设置显示状态只存在本机，不上传。</div>
       </div>
     </div>
 
     <nav class="bottomnav">
       <div class="tab active" data-page="overview">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 12V6"/><path d="M12 12l4 3"/></svg>概览
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 12V6"/><path d="M12 12l4 3"/></svg>概览<span class="tabdot hidden" id="reqTabDot">0</span>
       </div>
       <div class="tab" data-page="apps">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>应用
@@ -874,6 +940,7 @@
   <!-- ============ 孩子端（默认入口）：只回答一个问题——我还能玩多久 ============ -->
   <div id="childView" class="hidden">
     <div class="kid-hd">
+      <div class="kd" id="kidDate"></div>
       <div class="t">我的时间</div>
       <div class="play" id="kidPlaying">—</div>
     </div>
@@ -1013,7 +1080,12 @@
     });
     return c;
   }
-  function saveCfg(){ lsSet(CFG_KEY, JSON.stringify(cfg)); }
+  function saveCfg(){
+    lsSet(CFG_KEY, JSON.stringify(cfg));
+    // 配置一落盘就同步「临时通融」的应用下拉：清空 / 恢复 / 模板 / 批量重设后
+    // 不会留着旧应用名。renderBonusApps 是函数声明（提升），DOM 缺失时内部自行 return。
+    try{ renderBonusApps(); }catch(e){}
+  }
   var cfg = loadCfg();
   function managedIndex(pkg){ for(var i=0;i<cfg.managedApps.length;i++){ if(cfg.managedApps[i].pkg===pkg) return i; } return -1; }
 
@@ -1551,7 +1623,7 @@
   function showChild(){ mode='child'; setSeg('child');
     document.getElementById('parentView').classList.add('hidden'); document.getElementById('childView').classList.remove('hidden');
     hideLock();
-    lsSet(MODE_KEY,'child'); refreshBanners(); refreshGuardBar(); renderKid(); renderKidReqBar(); }
+    lsSet(MODE_KEY,'child'); refreshBanners(); refreshGuardBar(); renderKid(); renderKidReqBar(); renderKidDate(); }
   /* 密码尝试限制：默认 1234 太好猜，给个基本的门槛 */
   var PW_TRY='gm_pw_try', PW_LOCK='gm_pw_lock';
   /* 不用 window.prompt：WebView 默认不接管 onJsPrompt，prompt 会静默返回 null，
@@ -1642,7 +1714,7 @@
       document.getElementById('p-'+t.dataset.page).classList.add('active');
       if(t.dataset.page==='apps'){ loadApps(); updateGrpNote(); }
       if(t.dataset.page==='me') diagRun();
-      if(t.dataset.page==='overview'){ renderOverview(); renderRank(); renderFocus(true); renderRequests(); }
+      if(t.dataset.page==='overview'){ renderOverview(); renderRank(); renderFocus(true); renderRequests(); renderBonusApps(); }
       if(t.dataset.page==='stats'){ renderStats(); renderWeek(false); }
       if(t.dataset.page==='me'){ refreshPermStates(); renderAudit(); renderVerLine(); }
     };
@@ -2017,6 +2089,7 @@
   function renderRequests(){
     var card=document.getElementById('reqCard'); if(!card) return;
     var rs=loadReqs(), pend=rs.filter(function(r){return r.status==='pending';});
+    renderReqDot();
     var pill=document.getElementById('reqCount'); if(pill) pill.textContent=String(pend.length);
     var list=document.getElementById('reqList'), empty=document.getElementById('reqEmpty');
     if(pend.length===0){
@@ -2230,15 +2303,126 @@
     });
   });
 
+  /* ============================================================
+     v3.6 体验升级：常用/全部两级设置、家长主动加时、待审角标、孩子端日期
+     只读已有真实数据、只调已有桥接方法；仍然不碰 Guard / Enforcer / MonitorService。
+     ============================================================ */
+  var ME_ADV_KEY='gm_me_adv_v1';
+
+  /* ---------- 「我的」页：默认只显示前 4 张常用卡 ---------- */
+  function meAdvOn(){ return lsGet(ME_ADV_KEY)==='1'; }
+  // 常用卡按 id 白名单，不按 DOM 序号：以后往「我的」页插卡也不会选错。
+  // permCard 含全部权限授予按钮、pauseCard 含「彻底解除管控」(卸载前置条件)，都必须常显。
+  var ME_KEEP=['pwCard','permCard','policyCard','quotaCard','pauseCard'];
+  function applyMeAdv(){
+    var cs=document.querySelectorAll('#p-me > .card'), on=meAdvOn(), i, shown=0;
+    for(i=0;i<cs.length;i++){
+      var keep = ME_KEEP.indexOf(cs[i].id)>=0;
+      if(keep || on){ cs[i].classList.remove('hidden'); if(keep) shown++; }
+      else cs[i].classList.add('hidden');
+    }
+    var b=document.getElementById('meAdvBtn'), h=document.getElementById('meHint'),
+        s=document.getElementById('meDesc');
+    if(b) b.textContent = on ? '收起高级设置' : '展开全部设置';
+    if(h) h.textContent = on ? '全部设置（共 '+cs.length+' 项）' : '常用设置（'+shown+' 项）';
+    if(s) s.textContent = on
+      ? '自检、崩溃日志、操作记录、配置备份和使用说明都已展开，往下滑就能看到。'
+      : '排障、记录和备份收在「展开全部设置」里。卸载前要用的「彻底解除管控」一直留在下面「暂停 / 重置」里。';
+  }
+  var meAdvBtn=document.getElementById('meAdvBtn');
+  if(meAdvBtn) meAdvBtn.onclick=function(){
+    lsSet(ME_ADV_KEY, meAdvOn()?'0':'1');
+    applyMeAdv();
+    if(meAdvOn()) toast('已展开全部设置');
+    else { toast('已收起高级设置'); var pg=document.querySelector('#parentView .pages'); if(pg) pg.scrollTop=0; }
+  };
+  var mePause=document.getElementById('mePause');
+  if(mePause) mePause.onclick=function(){ doPause(30); toast('已暂停管控 30 分钟'); };
+  var meDiag=document.getElementById('meDiag');
+  if(meDiag) meDiag.onclick=function(){
+    if(!meAdvOn()){ lsSet(ME_ADV_KEY,'1'); applyMeAdv(); }
+    var c=document.getElementById('diagCard');
+    if(c){ try{ c.scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){} }
+    try{ diagRun(); }catch(e){}
+  };
+
+  /* ---------- 待审申请角标：孩子发了申请，家长在任何页都能看到 ---------- */
+  function renderReqDot(){
+    var d=document.getElementById('reqTabDot'); if(!d) return;
+    var n=0;
+    try{ n=loadReqs().filter(function(r){return r.status==='pending';}).length; }catch(e){}
+    if(n>0){ d.textContent=String(n); d.classList.remove('hidden'); }
+    else d.classList.add('hidden');
+  }
+
+  /* ---------- 家长主动加时：不用等孩子申请，也能今天多给一会儿 ----------
+     注意：工程里已有 function bonusMin(pkg)（effLimit 要用），这里绝不能叫 bonusMin，
+     同一 IIFE 里 var 提升会把函数覆盖成数字，额度计算当场抛 TypeError。 */
+  var quickBonusMin=10;
+  function renderBonusApps(){
+    var sel=document.getElementById('bonusApp'); if(!sel) return;
+    var list=cfg.managedApps||[], wrap=document.getElementById('bonusWrap'),
+        empty=document.getElementById('bonusEmpty');
+    if(list.length===0){
+      sel.innerHTML='';   // 清空配置后别在 DOM 里留着旧应用名
+      if(wrap) wrap.classList.add('hidden');
+      if(empty) empty.classList.remove('hidden');
+      return;
+    }
+    if(wrap) wrap.classList.remove('hidden');
+    if(empty) empty.classList.add('hidden');
+    var keep=sel.value, h='', i;
+    for(i=0;i<list.length;i++) h+='<option value="'+esc(list[i].pkg)+'">'+esc(list[i].name)+'</option>';
+    sel.innerHTML=h;
+    if(keep){ for(i=0;i<sel.options.length;i++) if(sel.options[i].value===keep){ sel.selectedIndex=i; break; } }
+    var ab=document.getElementById('bonusApply');
+    if(ab) ab.textContent='今天再给 '+quickBonusMin+' 分钟';
+  }
+  var bonusChips=document.getElementById('bonusChips');
+  if(bonusChips) bonusChips.addEventListener('click',function(e){
+    var b=evBtn(e,'data-min'); if(!b) return;
+    quickBonusMin=parseInt(b.getAttribute('data-min'),10)||10;
+    var cs=bonusChips.querySelectorAll('.chip');
+    for(var i=0;i<cs.length;i++){
+      if(cs[i]===b) cs[i].classList.add('active'); else cs[i].classList.remove('active');
+    }
+    var ab=document.getElementById('bonusApply'); if(ab) ab.textContent='今天再给 '+quickBonusMin+' 分钟';
+  });
+  var bonusApply=document.getElementById('bonusApply');
+  if(bonusApply) bonusApply.onclick=function(){
+    var sel=document.getElementById('bonusApp'), pkg=sel?sel.value:'';
+    if(!pkg){ toast('先在「应用」页勾选要管的应用'); return; }
+    var list=cfg.managedApps||[], nm=pkg;
+    for(var i=0;i<list.length;i++) if(list[i].pkg===pkg){ nm=list[i].name; break; }
+    askConfirm('今天多给 '+quickBonusMin+' 分钟',
+      '给「'+nm+'」今天额外加 '+quickBonusMin+' 分钟，只影响今天，不改每天的基础额度。确定吗？',
+      function(){
+        if(NATIVE){ try{ GameBridge.addBonus(pkg, quickBonusMin); }catch(err){} }
+        else { PREVIEW_BONUS[pkg]=(PREVIEW_BONUS[pkg]||0)+quickBonusMin; }
+        renderOverview(); renderStats(); renderKid(); refreshGuardBar();
+        toast(nm+' 今天 +'+quickBonusMin+' 分钟');
+      });
+  };
+
+  /* ---------- 孩子端日期眉标：只给日期，不给任何额度 / 设置信息 ---------- */
+  function renderKidDate(){
+    var el=document.getElementById('kidDate'); if(!el) return;
+    var d=new Date(), wk=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+    var s=(d.getMonth()+1)+' 月 '+d.getDate()+' 日 · '+wk[d.getDay()];
+    if(el.textContent!==s) el.textContent=s;
+  }
+
   /* ---------- 工具 ---------- */
   function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 
   /* ---------- 轮询刷新（真实用量） ---------- */
   setInterval(function(){
-    if(!document.getElementById('childView').classList.contains('hidden')){ renderKid(); renderKidReqBar(); }
+    if(!document.getElementById('childView').classList.contains('hidden')){ renderKid(); renderKidReqBar(); renderKidDate(); }
     if(document.getElementById('parentView') && !document.getElementById('parentView').classList.contains('hidden')){
       var ap=document.querySelector('#parentView .tab.active');
       if(ap){ var p=ap.dataset.page; if(p==='overview'){ renderOverview(); renderRank(); renderRequests(); } if(p==='stats') renderStats(); if(p==='apps') renderAppList(); if(p==='me') diagRun(); }
+      // overview 页的 renderRequests() 已更新角标，别重复；其他页靠这里每 5 秒更新一次
+      if(!ap || ap.dataset.page!=='overview') renderReqDot();
       refreshPermStates();
     }
     refreshBanners(); refreshGuardBar();
@@ -2249,8 +2433,8 @@
     try{
       hideLock();
       refreshBanners(); refreshPermStates(); refreshGuardBar();
-      if(mode==='child'){ renderKid(); renderKidReqBar(); }
-      else { renderOverview(); renderRank(); renderStats(); renderAudit(); renderRequests(); renderWeek(false); }
+      if(mode==='child'){ renderKid(); renderKidReqBar(); renderKidDate(); }
+      else { renderOverview(); renderRank(); renderStats(); renderAudit(); renderRequests(); renderWeek(false); renderBonusApps(); }
       pushManaged();
     }catch(e){}
   };
@@ -2267,6 +2451,7 @@
   }
   renderGuide(); refreshBanners(); refreshGuardBar(); renderVerLine(); renderFocus(true);
   try{ renderRequests(); renderKidReqBar(); }catch(e){}
+  try{ applyMeAdv(); renderBonusApps(); renderKidDate(); renderReqDot(); }catch(e){}
 })();
 </script>
 </body>
