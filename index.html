@@ -520,6 +520,64 @@
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{animation-duration:.001s !important;transition-duration:.001s !important;}
   }
+  /* ============================================================
+     v3.5 新功能层：申请审批 / 分组 / 周报 / 备份 / 模板
+     颜色走 Token；弹层才给动效，轮询重绘的区域一律不加动画。
+     ============================================================ */
+  :root{ --scrim:rgba(26,24,19,.52); --scrim-shadow:rgba(26,24,19,.3); }
+  .grpbar{display:flex;gap:6px;flex-wrap:wrap;margin:11px 0 2px;}
+  .grpbar .chip{flex:0 0 auto;padding:7px 13px;font-size:12.5px;border-radius:20px;}
+  .grpnote{font-size:12px;color:var(--muted);line-height:1.6;margin:4px 0 2px;}
+  .minibar{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px;}
+  .minibar .btn{flex:1;min-width:118px;}
+  .req-card{border-left:4px solid var(--warning);}
+  .req-card h3 svg{color:var(--warning);}
+  .req-row{padding:11px 0;border-bottom:1px solid var(--line);}
+  .req-row:last-child{border-bottom:none;}
+  .req-top{display:flex;align-items:baseline;gap:8px;font-size:14px;flex-wrap:wrap;}
+  .req-top b{font-weight:800;}
+  .req-top .min{color:var(--warning);font-weight:800;}
+  .req-meta{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.6;}
+  .req-note{font-size:12.5px;color:var(--text);background:var(--bg);border-radius:9px;padding:8px 10px;margin-top:7px;line-height:1.6;}
+  .req-acts{display:flex;gap:8px;margin-top:10px;}
+  .req-acts .btn{flex:1;margin-top:0;}
+  .req-empty{font-size:12.5px;color:var(--muted);line-height:1.7;}
+  .req-pill{display:inline-block;font-size:11px;font-weight:700;border-radius:20px;padding:3px 10px;background:var(--warning-bg);color:var(--warning);margin-left:6px;}
+  .wk-grid{display:flex;gap:8px;margin-bottom:12px;}
+  .wk-cell{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:11px 6px;text-align:center;}
+  .wk-cell .n{font-size:21px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums;line-height:1.2;}
+  .wk-cell .l{font-size:10.5px;color:var(--muted);margin-top:4px;line-height:1.4;}
+  .wk-chart{display:flex;gap:6px;align-items:flex-end;height:84px;margin:6px 0 2px;}
+  .wk-chart .d{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+  .wk-chart .col{width:100%;background:var(--primary);border-radius:5px 5px 0 0;min-height:3px;}
+  .wk-chart .col.over{background:var(--danger);}
+  .wk-chart .lab{font-size:10px;color:var(--muted);margin-top:4px;}
+  .wk-chart .v{font-size:9.5px;color:var(--muted);margin-bottom:2px;}
+  .wk-line{font-size:12.5px;color:var(--muted);line-height:1.7;margin-top:8px;}
+  .wk-line b{color:var(--text);}
+  .cfgbox{width:100%;min-height:92px;padding:11px 12px;border:1px solid var(--border);border-radius:12px;font-size:11.5px;line-height:1.5;background:var(--surface);color:var(--text);font-family:ui-monospace,Menlo,Consolas,monospace;resize:vertical;margin-top:11px;}
+  .tplrow{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap;}
+  .tplrow .btn{flex:1;min-width:86px;padding:10px 4px;font-size:12.5px;}
+  .setrow{display:flex;align-items:center;gap:8px;margin-top:11px;font-size:12.5px;color:var(--muted);flex-wrap:wrap;}
+  .setrow input{width:62px;padding:7px 8px;border:1px solid var(--border);border-radius:9px;font-size:13px;text-align:center;background:var(--surface);}
+  .kid-req{margin:2px 0 18px;padding:13px 14px;border-radius:14px;background:var(--primary-50);border:1px solid var(--border);text-align:center;}
+  .kid-req .t{font-size:13px;color:var(--primary-600);font-weight:700;line-height:1.6;}
+  .kid-req .btn{margin-top:9px;}
+  .kid-req.ok{background:var(--success-bg);}
+  .kid-req.ok .t{color:var(--success);}
+  .kid-req.pending{background:var(--warning-bg);}
+  .kid-req.pending .t{color:var(--warning);}
+  #confirmModal,#reqModal{position:fixed;inset:0;background:var(--scrim);display:flex;align-items:center;justify-content:center;z-index:85;padding:22px;}
+  #confirmModal .box,#reqModal .box{background:var(--surface);border-radius:20px;padding:22px;width:100%;max-width:340px;box-shadow:0 18px 50px var(--scrim-shadow);max-height:86vh;overflow-y:auto;}
+  #confirmModal .mt,#reqModal .mt{font-size:17px;font-weight:800;color:var(--primary-600);}
+  #confirmModal .ms,#reqModal .ms{font-size:12.5px;color:var(--muted);margin:7px 0 14px;line-height:1.65;}
+  #confirmModal .mrow,#reqModal .mrow{display:flex;gap:10px;margin-top:14px;}
+  #confirmModal .mrow .btn,#reqModal .mrow .btn{margin-top:0;flex:1;width:auto;}
+  #reqModal .lb{font-size:12px;color:var(--muted);margin:12px 0 6px;font-weight:700;}
+  #reqModal .fchips{display:flex;gap:7px;}
+  #reqModal .fchips .chip{flex:1;padding:9px 2px;border-radius:10px;}
+  #reqModal select,#reqModal textarea{width:100%;padding:10px 11px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:var(--surface);color:var(--text);font-family:inherit;}
+  #reqModal textarea{min-height:62px;resize:vertical;line-height:1.5;}
 </style>
 </head>
 <body>
@@ -564,8 +622,19 @@
           <div class="gstep"><span class="gn">3</span><div><b>把手机给孩子</b>
             <div class="gd">孩子看到的是孩子端：每个游戏只剩「还能玩多久」，看不到总额度、也改不了设置。想进家长端要输密码，默认 1234，建议改成自己的。</div></div></div>
           <div class="gstep"><span class="gn">4</span><div><b>要通融的时候</b>
-            <div class="gd">「概览」页可以临时加时，或点「我的」→「暂停管控 30 分钟」。用完会自动恢复，不会忘。</div></div></div>
+            <div class="gd">孩子可以在孩子端「找家长申请加时」，你在「概览」页点同意就立刻生效；也可以点「我的」→「暂停管控 30 分钟」，用完会自动恢复。这版还加了分组勾选、本周报告、额度模板和配置备份。</div></div></div>
           <button class="btn ghost sm" id="guideHide" style="width:100%;margin-top:12px;">看完了，收起</button>
+        </div>
+
+        <!-- v3.5：孩子申请加时，家长在这里批准 -->
+        <div class="card req-card hidden" id="reqCard">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M19 16v6M16 19h6"/></svg>孩子申请加时<span class="req-pill" id="reqCount">0</span></h3>
+          <div id="reqList"></div>
+          <div class="req-empty" id="reqEmpty">暂时没有待处理的申请。孩子端快用完时可以直接发起，同意后会立刻加到今天的额度里。</div>
+          <div class="minibar">
+            <button class="btn ghost sm" id="reqRefresh" type="button">刷新申请</button>
+            <button class="btn ghost sm" id="reqClearDone" type="button">清掉已处理记录</button>
+          </div>
         </div>
         <div class="card">
           <div class="ov">
@@ -619,6 +688,21 @@
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>选择要管控的应用</h3>
           <div class="note">以下为手机<b>真实已装应用</b>。搜索找到要管控的 App，开启开关即纳入管控并设置每日分钟数。</div>
           <input class="search" id="appSearch" placeholder="搜索应用名…">
+          <div class="grpbar" id="grpBar">
+            <button class="chip active" data-grp="all" type="button">全部</button>
+            <button class="chip" data-grp="game" type="button">游戏</button>
+            <button class="chip" data-grp="video" type="button">短视频</button>
+            <button class="chip" data-grp="social" type="button">社交</button>
+            <button class="chip" data-grp="other" type="button">其他</button>
+          </div>
+          <div class="grpnote" id="grpNote">按类型筛出真实已装应用，可以一键把整组纳入管控。</div>
+          <div class="batchrow">
+            <span>把当前这组的<b>未管控</b>应用都设为</span>
+            <input type="number" min="1" id="grpLimit" value="30">
+            <span>分/天</span>
+            <button class="btn ghost sm" id="grpApply" type="button">一键勾选</button>
+          </div>
+
           <div class="filterrow"><label class="chk"><input type="checkbox" id="sysToggle"> 显示系统应用</label></div>
           <div class="batchrow">
             <span>批量：已选应用统一设为</span>
@@ -636,6 +720,16 @@
 
       <!-- 统计 -->
       <div class="page" id="p-stats">
+
+        <div class="card" id="weekCard">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V11M10 20V4M16 20V14M22 20V8"/></svg>本周报告（近 7 天）</h3>
+          <div id="weekBody"><div class="empty" style="padding:16px 0;">正在汇总真实用量…</div></div>
+          <div class="minibar">
+            <button class="btn ghost sm" id="weekRefresh" type="button">重新统计</button>
+            <button class="btn ghost sm" id="weekCopy" type="button">复制报告文字</button>
+          </div>
+          <div class="note">只统计「应用」页勾选过的应用，数据来自系统用量记录。点「复制报告文字」可以直接发给家人。</div>
+        </div>
         <div class="card" id="statsCard"><div class="empty">尚未选择受管控应用。</div></div>
       </div>
 
@@ -688,6 +782,14 @@
           <div class="perm-row" style="margin-top:6px;"><span>快用完时提前提醒</span>
             <span class="numinline"><input type="number" min="0" max="60" id="notifyBefore" value="5"> 分前</span></div>
           <div class="note">填 0 关闭提醒。提醒每个应用每天只发一次。</div>
+          <div class="lb" style="font-size:12px;color:var(--muted);margin-top:12px;font-weight:700;">一键套用额度模板（工作日 / 周末，单位：分）</div>
+          <div class="tplrow">
+            <button class="btn ghost sm" data-tpl="strict" type="button">严格 20 / 40</button>
+            <button class="btn ghost sm" data-tpl="normal" type="button">常规 30 / 60</button>
+            <button class="btn ghost sm" data-tpl="loose" type="button">宽松 45 / 90</button>
+          </div>
+          <div class="note">会覆盖所有已勾选应用的分钟数，并自动打开「工作日 / 周末分开设」。点之前会再确认一次。</div>
+
         </div>
 
         <div class="card" id="diagCard">
@@ -718,6 +820,23 @@
           <div class="note">记录加时、豁免、暂停/恢复、拦截动作，方便回溯“昨天到底给谁加了多少”。</div>
         </div>
 
+
+        <!-- v3.5：配置备份 / 恢复 / 批量重设 -->
+        <div class="card">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12M8 11l4 4 4-4"/><path d="M4 17v3h16v-3"/></svg>配置备份与批量设置</h3>
+          <div class="minibar">
+            <button class="btn ghost sm" id="cfgExport" type="button">复制当前配置</button>
+            <button class="btn ghost sm" id="cfgImport" type="button">粘贴后恢复</button>
+          </div>
+          <textarea class="cfgbox" id="cfgBox" placeholder="点「复制当前配置」拿到一段文字；换手机或重装后，把文字粘贴到这里再点「粘贴后恢复」。"></textarea>
+          <div class="setrow">
+            <span>把<b>所有受管应用</b>统一重设为</span>
+            <input type="number" min="1" id="resetLimit" value="30">
+            <span>分/天</span>
+            <button class="btn ghost sm" id="resetApply" type="button">重设</button>
+          </div>
+          <div class="note">重设只改每日基准分钟数，不动今天的加时和已用时长。恢复配置会覆盖当前设置，操作前会再确认一次。</div>
+        </div>
         <div class="card">
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>暂停 / 重置</h3>
           <button class="btn ghost sm" id="pause30" style="width:100%;">暂停管控 30 分钟</button>
@@ -732,7 +851,7 @@
           <button class="btn ghost sm" id="guideShow" style="width:100%;">重新显示「四步就能用」</button>
           <div class="note">孩子端点右上角「孩子」随时可以回到孩子端；点「家长」要输密码。</div>
         </div>
-        <div class="note">v2 · 数据全部来自手机真实用量（UsageStatsManager）与已装应用（PackageManager）。</div>
+        <div class="note">v3.5 · 数据全部来自手机真实用量（UsageStatsManager）与已装应用（PackageManager）；加时申请与周报只存在本机，不上传。</div>
       </div>
     </div>
 
@@ -763,6 +882,12 @@
       <div class="big">今天的时间都用完了</div>
       <div class="sub">明天再玩吧。<br>想现在继续，请找家长帮你加时间。</div>
     </div>
+
+    <div id="kidReqBar" class="kid-req hidden">
+      <div class="t" id="kidReqText">时间快用完了？可以向家长申请加一会儿。</div>
+      <button class="btn ghost sm" id="kidReqBtn" type="button">找家长申请加时</button>
+    </div>
+
     <div id="kidEmpty" class="empty hidden">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 12V6"/><path d="M12 12l4 3"/></svg>
       家长还没给你设置游戏时间。
@@ -783,6 +908,41 @@
     </div>
   </div>
 
+
+  <!-- 页面内确认层：WebView 默认 WebChromeClient 不接管 JS 对话框，confirm/alert 不可靠 -->
+  <div id="confirmModal" class="hidden">
+    <div class="box">
+      <div class="mt" id="cfTitle">确认操作</div>
+      <div class="ms" id="cfMsg"></div>
+      <div class="mrow">
+        <button class="btn ghost" id="cfCancel" type="button">取消</button>
+        <button class="btn" id="cfOk" type="button">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 孩子申请加时 -->
+  <div id="reqModal" class="hidden">
+    <div class="box">
+      <div class="mt">向家长申请加时</div>
+      <div class="ms">写清楚想玩多久。家长在这台手机的家长端确认后，时间会立刻加上，不用重启应用。</div>
+      <div class="lb">想玩哪个</div>
+      <select id="reqApp"></select>
+      <div class="lb">想再玩多久</div>
+      <div class="fchips" id="reqChips">
+        <button class="chip" data-min="5" type="button">5 分</button>
+        <button class="chip active" data-min="10" type="button">10 分</button>
+        <button class="chip" data-min="15" type="button">15 分</button>
+        <button class="chip" data-min="30" type="button">30 分</button>
+      </div>
+      <div class="lb">想跟家长说的话（可不填）</div>
+      <textarea id="reqNote" placeholder="例如：这局还没打完"></textarea>
+      <div class="mrow">
+        <button class="btn ghost" id="reqCancel" type="button">取消</button>
+        <button class="btn" id="reqSubmit" type="button">发出申请</button>
+      </div>
+    </div>
+  </div>
   <!-- 超限提示层（必须带出口，禁止做成关不掉的黑屏） -->
   <div id="lockOverlay">
     <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
@@ -1191,6 +1351,7 @@
   /* ---------- 应用列表（真实已装 / 预览示例） ---------- */
   var allApps=[];
   var showSystem=false;
+  var curGroup='all';   // v3.5 应用分组筛选
   function loadApps(){
     var box=document.getElementById('appList'), empty=document.getElementById('appEmpty');
     if(isPreview){
@@ -1219,6 +1380,7 @@
     allApps.forEach(function(a,idx){
       if(!showSystem && a.sys) return;
       if(q && a.name.toLowerCase().indexOf(q)<0 && a.pkg.toLowerCase().indexOf(q)<0) return;
+      if(typeof curGroup!=='undefined' && curGroup!=='all' && groupOf(a)!==curGroup) return;
       var mi=managedIndex(a.pkg), on=mi>=0;
       var used= usageMin(a.pkg, map);
       var color=AV_COLORS[(a.name.charCodeAt(0)+idx)%AV_COLORS.length];
@@ -1308,11 +1470,13 @@
   /** 今日豁免：把今天已经用掉的时长整体抵掉，让该应用今天重新可用 */
   window.exemptApp=function(pkg){
     var mi=managedIndex(pkg); if(mi<0) return;
-    if(!confirm('把「'+cfg.managedApps[mi].name+'」今天已用的时长整体抵掉，今天重新计时？')) return;
-    if(NATIVE){ try{ GameBridge.exemptToday(pkg); }catch(e){} }
-    else { PREVIEW_BONUS[pkg]=(PREVIEW_BONUS[pkg]||0)+999; }
-    renderStats(); renderOverview(); refreshGuardBar();
-    toast('已豁免「'+cfg.managedApps[mi].name+'」今日已用时长');
+    var nm=cfg.managedApps[mi].name;
+    askConfirm('今日豁免','把「'+nm+'」今天已用的时长整体抵掉，今天重新计时？',function(){
+      if(NATIVE){ try{ GameBridge.exemptToday(pkg); }catch(e){} }
+      else { PREVIEW_BONUS[pkg]=(PREVIEW_BONUS[pkg]||0)+999; }
+      renderStats(); renderOverview(); refreshGuardBar();
+      toast('已豁免「'+nm+'」今日已用时长');
+    });
   };
 
   /* ---------- 孩子端 ----------
@@ -1382,11 +1546,11 @@
   function showParent(){ mode='parent'; setSeg('parent');
     document.getElementById('parentView').classList.remove('hidden'); document.getElementById('childView').classList.add('hidden');
     hideLock();
-    lsSet(MODE_KEY,'parent'); refreshPermStates(); refreshBanners(); refreshGuardBar(); renderOverview(); renderRank(); renderStats(); renderFocus(true); }
+    lsSet(MODE_KEY,'parent'); refreshPermStates(); refreshBanners(); refreshGuardBar(); renderOverview(); renderRank(); renderStats(); renderFocus(true); renderRequests(); renderWeek(false); }
   function showChild(){ mode='child'; setSeg('child');
     document.getElementById('parentView').classList.add('hidden'); document.getElementById('childView').classList.remove('hidden');
     hideLock();
-    lsSet(MODE_KEY,'child'); refreshBanners(); refreshGuardBar(); renderKid(); }
+    lsSet(MODE_KEY,'child'); refreshBanners(); refreshGuardBar(); renderKid(); renderKidReqBar(); }
   /* 密码尝试限制：默认 1234 太好猜，给个基本的门槛 */
   var PW_TRY='gm_pw_try', PW_LOCK='gm_pw_lock';
   /* 不用 window.prompt：WebView 默认不接管 onJsPrompt，prompt 会静默返回 null，
@@ -1405,7 +1569,7 @@
     if(!cfg.password){ showParent(); return; }
     var lockUntil=parseInt(lsGet(PW_LOCK)||'0',10);
     if(lockUntil>Date.now()){
-      alert('错太多次了，请 '+Math.ceil((lockUntil-Date.now())/1000)+' 秒后再试。');
+      toast('错太多次了，请 '+Math.ceil((lockUntil-Date.now())/1000)+' 秒后再试');
       return;
     }
     var hint = (cfg.password==='1234') ? '请输入家长密码（出厂默认 1234）' : '请输入家长密码';
@@ -1419,7 +1583,7 @@
     var n=parseInt(lsGet(PW_TRY)||'0',10)+1;
     if(n>=5){
       lsSet(PW_TRY,'0'); lsSet(PW_LOCK,String(Date.now()+60000));
-      closePw(); alert('连续错 5 次，锁定 1 分钟。');
+      closePw(); toast('连续错 5 次，锁定 1 分钟');
     } else {
       lsSet(PW_TRY,String(n));
       document.getElementById('pwMsg').textContent='密码不对（第 '+n+' 次，错满 5 次锁 1 分钟）';
@@ -1475,10 +1639,10 @@
       t.classList.add('active');
       document.querySelectorAll('#parentView .page').forEach(function(pg){pg.classList.remove('active');});
       document.getElementById('p-'+t.dataset.page).classList.add('active');
-      if(t.dataset.page==='apps') loadApps();
+      if(t.dataset.page==='apps'){ loadApps(); updateGrpNote(); }
       if(t.dataset.page==='me') diagRun();
-      if(t.dataset.page==='overview'){ renderOverview(); renderRank(); renderFocus(true); }
-      if(t.dataset.page==='stats') renderStats();
+      if(t.dataset.page==='overview'){ renderOverview(); renderRank(); renderFocus(true); renderRequests(); }
+      if(t.dataset.page==='stats'){ renderStats(); renderWeek(false); }
       if(t.dataset.page==='me'){ refreshPermStates(); renderAudit(); renderVerLine(); }
     };
   });
@@ -1486,12 +1650,18 @@
   /* ---------- 我的：按钮 ---------- */
   document.getElementById('pwSave').onclick=function(){
     var v=document.getElementById('pwInput').value.trim();
-    if(!v){ alert('密码不能为空'); return; }
-    if(v.length<4){ alert('密码至少 4 位。'); return; }
-    if(v==='1234' && !confirm('1234 是最容易被猜到的密码，确定要用？')) return;
-    cfg.password=v; saveCfg();
-    if(NATIVE){ try{ GameBridge.setParentPassword(v); }catch(e){} }
-    toast('家长密码已保存');
+    if(!v){ toast('密码不能为空'); return; }
+    if(v.length<4){ toast('密码至少 4 位'); return; }
+    var doSave=function(){
+      cfg.password=v; saveCfg();
+      if(NATIVE){ try{ GameBridge.setParentPassword(v); }catch(e){} }
+      toast('家长密码已保存');
+    };
+    if(v==='1234'){
+      askConfirm('用默认密码？','1234 是最容易被孩子猜到的密码，建议换成自己的。仍然要用 1234 吗？',doSave);
+      return;
+    }
+    doSave();
   };
   document.getElementById('enableOverlay').onclick=function(){ if(NATIVE){ try{GameBridge.requestOverlayPermission();}catch(e){} } };
   document.getElementById('enableUsage').onclick=function(){ if(NATIVE){ try{GameBridge.openUsageSettings();}catch(e){} } };
@@ -1499,30 +1669,36 @@
   document.getElementById('enableAdmin').onclick=function(){ if(NATIVE){ try{GameBridge.requestAdmin();}catch(e){} } };
   document.getElementById('enableBatt').onclick=function(){ if(NATIVE){ try{GameBridge.requestIgnoreBatteryOptimizations();}catch(e){} } };
   document.getElementById('lockBtn').onclick=function(){
-    if(!confirm('立即锁定屏幕？这会锁住整台手机。')) return;
-    if(NATIVE){ try{ GameBridge.lockNow(); }catch(e){} }
+    askConfirm('立即锁屏','这会锁住整台手机，需要你用自己的方式解锁。确定现在锁吗？',function(){
+      if(NATIVE){ try{ GameBridge.lockNow(); }catch(e){} }
+    });
   };
   document.getElementById('pause30').onclick=function(){ doPause(30); toast('已暂停管控 30 分钟'); };
   document.getElementById('resumeNow').onclick=function(){ doResume(); toast('已恢复管控'); };
   document.getElementById('resetAll').onclick=function(){
-    if(!confirm('确定清空所有管控应用与限额？')) return;
-    cfg.managedApps=[]; saveCfg(); pushManaged();
-    if(NATIVE){ try{ GameBridge.stopMonitor(); }catch(e){} }
-    renderAppList(); renderOverview(); renderStats(); renderKid(); refreshGuardBar();
+    askConfirm('清空管控配置','会清掉所有已勾选的应用和限额，监控也会停。孩子端会变回「家长还没设置」。确定吗？',function(){
+      cfg.managedApps=[]; saveCfg(); pushManaged();
+      if(NATIVE){ try{ GameBridge.stopMonitor(); }catch(e){} }
+      renderAppList(); renderOverview(); renderStats(); renderKid(); renderWeek(true);
+      renderRequests(); renderKidReqBar(); refreshGuardBar();
+      toast('已清空所有管控配置');
+    });
   };
 
   /* ---------- 彻底解除管控（卸载前置条件） ---------- */
   document.getElementById('releaseAll').onclick=function(){
-    if(!confirm('将停止监控、清空全部管控配置、取消设备管理员。\n\n完成后本应用才允许被卸载。确定继续？')) return;
-    if(NATIVE){ try{ GameBridge.releaseAll(); }catch(e){} }
-    cfg.managedApps=[]; saveCfg(); pushManaged();
-    renderAppList(); renderOverview(); renderStats(); renderKid(); refreshGuardBar();
-    alert('已彻底解除。\n现在可以正常卸载本应用了。');
+    askConfirm('彻底解除管控','会停止监控、清空全部管控配置、取消设备管理员。完成后本应用才允许被卸载。确定继续？',function(){
+      if(NATIVE){ try{ GameBridge.releaseAll(); }catch(e){} }
+      cfg.managedApps=[]; saveCfg(); pushManaged();
+      renderAppList(); renderOverview(); renderStats(); renderKid(); renderWeek(true);
+      renderRequests(); renderKidReqBar(); refreshGuardBar();
+      toast('已彻底解除，现在可以正常卸载本应用了');
+    });
   };
 
   /* ---------- 批量设置限额 ---------- */
   document.getElementById('batchApply').onclick=function(){
-    if(cfg.managedApps.length===0){ alert('还没有选择任何受管控应用'); return; }
+    if(cfg.managedApps.length===0){ toast('还没有选择任何受管控应用'); return; }
     var v=parseInt(document.getElementById('batchLimit').value,10);
     if(isNaN(v)||v<1) v=1;
     cfg.managedApps.forEach(function(a){ a.limit=v; a.limitWe=v; });
@@ -1580,7 +1756,7 @@
     var st=document.getElementById('focusStart');
     if(st) st.onclick=function(){
       if(!NATIVE){ toast('网页预览不支持真拦截'); return; }
-      if(cfg.managedApps.length===0){ alert('先去「应用」页勾选要管控的应用，专注模式才有对象。'); return; }
+      if(cfg.managedApps.length===0){ toast('先去「应用」页勾选要管控的应用，专注模式才有对象'); return; }
       try{ GameBridge.startFocus(focusMin); }catch(e){}
       toast('专注开始：'+focusMin+' 分钟');
       renderFocus(true); refreshGuardBar();
@@ -1708,15 +1884,358 @@
     toast('操作记录已清空');
   };
 
+  /* ============================================================
+     v3.5 新功能：申请审批 / 分组 / 周报 / 备份 / 模板
+     只读已有真实数据、只调已有桥接方法；不碰 Guard / Enforcer / MonitorService。
+     ============================================================ */
+  var REQ_KEY='gm_requests_v1', DAY_MS=86400000;
+  function evBtn(e,attr){
+    var n=e.target;
+    for(var i=0;i<3&&n;i++){
+      if(n.getAttribute && n.getAttribute(attr)!==null) return n;
+      n=n.parentNode;
+    }
+    return null;
+  }
+  function loadReqs(){
+    var a=null; try{ a=JSON.parse(lsGet(REQ_KEY)); }catch(e){}
+    if(!a||!(a instanceof Array)) a=[];
+    var now=Date.now(), changed=false;
+    a=a.filter(function(r){ return r && r.pkg && typeof r.min==='number'; });
+    a.forEach(function(r){
+      if(r.status==='pending' && now-(r.t||0)>DAY_MS){ r.status='expired'; changed=true; }
+    });
+    if(a.length>40){ a=a.slice(-40); changed=true; }
+    if(changed) lsSet(REQ_KEY, JSON.stringify(a));
+    return a;
+  }
+  function saveReqs(a){ lsSet(REQ_KEY, JSON.stringify(a||[])); }
+  function reqTime(t){
+    var d=new Date(t||0);
+    return (d.getMonth()+1)+'/'+d.getDate()+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+  }
+
+  /* ---------- 页面内确认：替代 WebView 里不可靠的 window.confirm ---------- */
+  var cfAction=null;
+  function askConfirm(title,msg,fn){
+    var m=document.getElementById('confirmModal');
+    if(!m){ if(fn){ try{ fn(); }catch(e){} } return; }
+    var t=document.getElementById('cfTitle'), ms=document.getElementById('cfMsg');
+    if(t) t.textContent=title;
+    if(ms) ms.textContent=msg;
+    cfAction=fn||null;
+    m.classList.remove('hidden');
+  }
+  function closeConfirm(){
+    var m=document.getElementById('confirmModal'); if(m) m.classList.add('hidden');
+    cfAction=null;
+  }
+  document.getElementById('cfCancel').onclick=closeConfirm;
+  document.getElementById('cfOk').onclick=function(){
+    var f=cfAction; closeConfirm();
+    if(f){ try{ f(); }catch(e){} }
+  };
+
+  /* ---------- 功能 1：孩子申请加时 → 家长审批（本机闭环） ---------- */
+  var reqMin=10;
+  function openReq(){
+    var sel=document.getElementById('reqApp'); if(!sel) return;
+    if(cfg.managedApps.length===0){ toast('家长还没设置游戏时间'); return; }
+    var h='';
+    cfg.managedApps.forEach(function(a){ h+='<option value="'+esc(a.pkg)+'">'+esc(a.name)+'</option>'; });
+    sel.innerHTML=h;
+    var nt=document.getElementById('reqNote'); if(nt) nt.value='';
+    document.getElementById('reqModal').classList.remove('hidden');
+  }
+  function closeReq(){ var m=document.getElementById('reqModal'); if(m) m.classList.add('hidden'); }
+  document.getElementById('kidReqBtn').onclick=openReq;
+  document.getElementById('reqCancel').onclick=closeReq;
+  document.getElementById('reqChips').addEventListener('click',function(e){
+    var b=evBtn(e,'data-min'); if(!b) return;
+    reqMin=parseInt(b.getAttribute('data-min'),10)||10;
+    var cs=document.querySelectorAll('#reqChips .chip');
+    for(var i=0;i<cs.length;i++) cs[i].classList.toggle('active', cs[i]===b);
+  });
+  document.getElementById('reqSubmit').onclick=function(){
+    var sel=document.getElementById('reqApp'), pkg=sel?sel.value:'';
+    var mi=managedIndex(pkg); if(mi<0){ toast('先选一个游戏'); return; }
+    var a=loadReqs();
+    for(var i=0;i<a.length;i++){
+      if(a[i].status==='pending' && a[i].pkg===pkg){ toast('这个游戏的申请已经发出去了，等家长确认'); closeReq(); return; }
+    }
+    var nt=document.getElementById('reqNote');
+    a.push({id:'r'+Date.now(), pkg:pkg, name:cfg.managedApps[mi].name, min:reqMin,
+      note:((nt&&nt.value)||'').slice(0,80), t:Date.now(), status:'pending', read:false, handledAt:0});
+    saveReqs(a); closeReq(); renderKidReqBar(); renderRequests();
+    toast('申请已发出，等家长确认');
+  };
+
+  /** 孩子端底部那条：时间紧张 / 有申请 / 有结果时才出现；平时孩子端仍只有剩余分钟 */
+  function renderKidReqBar(){
+    var bar=document.getElementById('kidReqBar'); if(!bar) return;
+    if(cfg.managedApps.length===0){ bar.classList.add('hidden'); return; }
+    var rs=loadReqs(), last=null, pending=false, i;
+    for(i=rs.length-1;i>=0;i--){
+      if(rs[i].status!=='pending' && !rs[i].read && Date.now()-(rs[i].handledAt||0)<DAY_MS){ last=rs[i]; break; }
+    }
+    for(i=0;i<rs.length;i++) if(rs[i].status==='pending'){ pending=true; break; }
+    var map=getAllUsage(), tight=false;
+    for(i=0;i<cfg.managedApps.length;i++){
+      var a=cfg.managedApps[i];
+      if(usageMin(a.pkg,map) >= effLimit(a)-5){ tight=true; break; }
+    }
+    var t=document.getElementById('kidReqText'), btn=document.getElementById('kidReqBtn');
+    bar.className='kid-req';
+    if(last && last.status==='approved'){
+      bar.classList.add('ok');
+      t.textContent='家长同意了，'+last.name+' 多了 '+last.min+' 分钟。';
+      btn.textContent='知道了';
+      btn.onclick=(function(r){ return function(){ r.read=true; saveReqs(rs); renderKidReqBar(); }; })(last);
+    } else if(last && last.status==='rejected'){
+      bar.classList.add('pending');
+      t.textContent='家长这次没同意，明天再玩吧。';
+      btn.textContent='知道了';
+      btn.onclick=(function(r){ return function(){ r.read=true; saveReqs(rs); renderKidReqBar(); }; })(last);
+    } else if(pending){
+      bar.classList.add('pending');
+      t.textContent='申请已经发出去了，等家长确认。';
+      btn.textContent='再看看';
+      btn.onclick=function(){ toast('等家长在家长端确认就行'); };
+    } else if(tight){
+      t.textContent='时间快用完了？可以向家长申请加一会儿。';
+      btn.textContent='找家长申请加时';
+      btn.onclick=openReq;
+    } else {
+      bar.classList.add('hidden'); return;
+    }
+    bar.classList.remove('hidden');
+  }
+
+  function renderRequests(){
+    var card=document.getElementById('reqCard'); if(!card) return;
+    var rs=loadReqs(), pend=rs.filter(function(r){return r.status==='pending';});
+    var pill=document.getElementById('reqCount'); if(pill) pill.textContent=String(pend.length);
+    var list=document.getElementById('reqList'), empty=document.getElementById('reqEmpty');
+    if(pend.length===0){
+      card.classList.add('hidden');
+      if(list) list.innerHTML='';
+      if(empty) empty.classList.remove('hidden');
+      return;
+    }
+    card.classList.remove('hidden');
+    if(empty) empty.classList.add('hidden');
+    var h='';
+    pend.slice().reverse().forEach(function(r){
+      h+='<div class="req-row">'
+        +'<div class="req-top"><b>'+esc(r.name||appName(r.pkg))+'</b><span class="min">再玩 '+r.min+' 分钟</span></div>'
+        +'<div class="req-meta">'+reqTime(r.t)+' 发起</div>'
+        +(r.note?'<div class="req-note">'+esc(r.note)+'</div>':'')
+        +'<div class="req-acts">'
+        +'<button class="btn sm" data-req="ok" data-id="'+esc(r.id)+'" type="button">同意并加时</button>'
+        +'<button class="btn ghost sm" data-req="no" data-id="'+esc(r.id)+'" type="button">这次不行</button>'
+        +'</div></div>';
+    });
+    if(list) list.innerHTML=h;
+  }
+  document.getElementById('reqList').addEventListener('click',function(e){
+    var b=evBtn(e,'data-req'); if(!b) return;
+    var id=b.getAttribute('data-id'), act=b.getAttribute('data-req');
+    var rs=loadReqs(), hit=null;
+    for(var i=0;i<rs.length;i++) if(rs[i].id===id){ hit=rs[i]; break; }
+    if(!hit||hit.status!=='pending') return;
+    if(act==='ok'){
+      if(NATIVE){ try{ GameBridge.addBonus(hit.pkg, hit.min); }catch(err){} }
+      else { PREVIEW_BONUS[hit.pkg]=(PREVIEW_BONUS[hit.pkg]||0)+hit.min; }
+      hit.status='approved';
+      toast('已同意，'+hit.name+' 今日 +'+hit.min+' 分钟');
+    } else {
+      hit.status='rejected';
+      toast('已拒绝这次申请');
+    }
+    hit.handledAt=Date.now(); hit.read=false;
+    saveReqs(rs);
+    renderRequests(); renderOverview(); renderStats(); renderKidReqBar(); refreshGuardBar();
+  });
+  document.getElementById('reqRefresh').onclick=function(){ renderRequests(); toast('已刷新'); };
+  document.getElementById('reqClearDone').onclick=function(){
+    askConfirm('清掉已处理记录','只删除已经同意 / 拒绝 / 过期的申请，还没处理的会留下。',function(){
+      saveReqs(loadReqs().filter(function(r){return r.status==='pending';}));
+      renderRequests(); renderKidReqBar(); toast('已清理');
+    });
+  };
+
+  /* ---------- 功能 2：应用分组 + 一键勾选整组 ---------- */
+  var GAME_KW=['game','tmgp','sgame','pubgm','mihoyo','yuanshen','netease','gameloft','supercell','riot','miniclip','4399','arena','craft'];
+  var GAME_CN=['王者','和平','原神','蛋仔','迷你世界','我的世界','第五人格','崩坏','英雄联盟','部落','三角洲','暗区','火影','飞车','穿越火线','方舟','阴阳师','光遇'];
+  var VIDEO_KW=['aweme','douyin','kuaishou','snssdk','tiktok','bilibili','bili','xiaohongshu','toutiao','weishi','pipi','kuaikan'];
+  var VIDEO_CN=['抖音','快手','小红书','哔哩','视频','微视','西瓜'];
+  var SOCIAL_KW=['tencent.mm','mobileqq','weibo','sina','immomo','whatsapp','telegram','zhihu','wechat'];
+  var SOCIAL_CN=['微信','微博','陌陌','知乎','豆瓣'];
+  function hitAny(t,arr){ for(var i=0;i<arr.length;i++) if(t.indexOf(arr[i])>=0) return true; return false; }
+  function groupOf(a){
+    var p=String(a.pkg||'').toLowerCase(), n=String(a.name||'').toLowerCase();
+    if(hitAny(p,VIDEO_KW)||hitAny(n,VIDEO_CN)) return 'video';
+    if(hitAny(p,GAME_KW)||hitAny(n,GAME_CN)) return 'game';
+    if(hitAny(p,SOCIAL_KW)||hitAny(n,SOCIAL_CN)) return 'social';
+    return 'other';
+  }
+  function visibleApps(){
+    var q=(document.getElementById('appSearch').value||'').trim().toLowerCase(), out=[];
+    for(var i=0;i<allApps.length;i++){
+      var a=allApps[i];
+      if(!showSystem && a.sys) continue;
+      if(q && String(a.name).toLowerCase().indexOf(q)<0 && String(a.pkg).toLowerCase().indexOf(q)<0) continue;
+      if(curGroup!=='all' && groupOf(a)!==curGroup) continue;
+      out.push(a);
+    }
+    return out;
+  }
+  function updateGrpNote(){
+    if(!allApps.length) return;
+    var el=document.getElementById('grpNote'); if(!el) return;
+    var names={all:'全部',game:'游戏',video:'短视频',social:'社交',other:'其他'};
+    el.textContent='当前「'+names[curGroup]+'」分组：'+visibleApps().length+' 个应用。按名称/包名自动归类，分错了不影响管控，可以直接在下面手动开关。';
+  }
+  document.getElementById('grpBar').addEventListener('click',function(e){
+    var b=evBtn(e,'data-grp'); if(!b) return;
+    curGroup=b.getAttribute('data-grp')||'all';
+    var cs=document.querySelectorAll('#grpBar .chip');
+    for(var i=0;i<cs.length;i++) cs[i].classList.toggle('active', cs[i]===b);
+    renderAppList(); updateGrpNote();
+  });
+  document.getElementById('grpApply').onclick=function(){
+    var v=parseInt(document.getElementById('grpLimit').value,10);
+    if(isNaN(v)||v<1){ toast('分钟数要大于 0'); return; }
+    var list=visibleApps(), add=0;
+    list.forEach(function(a){
+      if(managedIndex(a.pkg)<0){ cfg.managedApps.push({pkg:a.pkg,name:a.name,limit:v,limitWe:v}); add++; }
+    });
+    if(add===0){ toast('这一组已经全部在管控里了'); return; }
+    saveCfg(); pushManaged(); renderAppList(); renderOverview(); renderStats(); renderWeek(true); refreshGuardBar();
+    toast('已把这一组 '+add+' 个应用纳入管控，每个 '+v+' 分/天');
+  };
+
+  /* ---------- 功能 3：本周报告（真实 7 天用量汇总） ---------- */
+  var weekCache={text:'',at:0};
+  function weekLabels(){
+    var labs=['日','一','二','三','四','五','六'], out=[];
+    for(var i=6;i>=0;i--){ var d=new Date(); d.setDate(d.getDate()-i); out.push(labs[d.getDay()]); }
+    return out;
+  }
+  function weekData(){
+    var days=7, sum=[]; for(var i=0;i<days;i++) sum[i]=0;
+    var per=[];
+    cfg.managedApps.forEach(function(a){
+      var sr=[];
+      if(NATIVE){ try{ sr=JSON.parse(GameBridge.getUsageSeries(a.pkg,days)); }catch(e){ sr=[]; } }
+      else { sr=sampleSeries(a.pkg); }
+      var tot=0;
+      for(var j=0;j<days;j++){
+        var m=Math.round((sr[j]||0)/60000);
+        sum[j]+=m; tot+=m;
+      }
+      per.push({name:a.name,min:tot});
+    });
+    per.sort(function(x,y){return y.min-x.min;});
+    var total=0; for(var k=0;k<days;k++) total+=sum[k];
+    var limitSum=0; cfg.managedApps.forEach(function(a){ limitSum+=effLimit(a); });
+    var okDays=0;
+    for(var n=0;n<days;n++) if(limitSum>0 && sum[n]<=limitSum) okDays++;
+    return {sum:sum,total:total,avg:Math.round(total/7),per:per,limitSum:limitSum,okDays:okDays};
+  }
+  function renderWeek(force){
+    var box=document.getElementById('weekBody'); if(!box) return;
+    if(!force && weekCache.at && Date.now()-weekCache.at<60000) return;
+    weekCache.at=Date.now();
+    if(cfg.managedApps.length===0){
+      box.innerHTML='<div class="empty" style="padding:16px 0;">先在「应用」页勾选要管的应用，这里才会出周报。</div>';
+      weekCache.text='还没有勾选受管应用。';
+      return;
+    }
+    var d=weekData(), labs=weekLabels();
+    var max=Math.max.apply(null,d.sum.concat([d.limitSum,1]));
+    var h='<div class="wk-grid">'
+      +'<div class="wk-cell"><div class="n">'+d.total+'</div><div class="l">7 天合计(分)</div></div>'
+      +'<div class="wk-cell"><div class="n">'+d.avg+'</div><div class="l">日均(分)</div></div>'
+      +'<div class="wk-cell"><div class="n">'+d.okDays+'/7</div><div class="l">没超额度天数</div></div></div>'
+      +'<div class="wk-chart">';
+    d.sum.forEach(function(v,i){
+      var hp=max>0?Math.max(3,v/max*100):3;
+      var over=d.limitSum>0 && v>d.limitSum;
+      h+='<div class="d"><div class="v">'+v+'</div><div class="col'+(over?' over':'')+'" style="height:'+hp.toFixed(0)+'%"></div><div class="lab">'+labs[i]+'</div></div>';
+    });
+    h+='</div><div class="wk-line">最费时间：<b>'+esc(d.per.length?d.per[0].name:'—')+'</b>（'+(d.per.length?d.per[0].min:0)+' 分）。'
+      +(d.limitSum>0?('当前每天合计额度 <b>'+d.limitSum+' 分</b>，柱子变红就是那天超了。'):'还没设额度，柱子只反映真实用量。')+'</div>';
+    box.innerHTML=h;
+    var lines=['时间约定 · 近 7 天使用报告'];
+    lines.push('合计 '+d.total+' 分钟，日均 '+d.avg+' 分钟，没超额 '+d.okDays+'/7 天');
+    d.sum.forEach(function(v,i){ lines.push('  '+labs[i]+'：'+v+' 分'); });
+    if(d.per.length) lines.push('最费时间：'+d.per[0].name+' '+d.per[0].min+' 分');
+    weekCache.text=lines.join('\n');
+  }
+  document.getElementById('weekRefresh').onclick=function(){ renderWeek(true); toast('已重新统计'); };
+  document.getElementById('weekCopy').onclick=function(){
+    renderWeek(false);
+    var t=weekCache.text||'暂无数据';
+    if(NATIVE){ try{ GameBridge.copyText(t); }catch(e){} }
+    else { var ta=document.getElementById('cfgBox'); if(ta){ ta.value=t; ta.focus(); ta.select(); } }
+  };
+
+  /* ---------- 功能 4：配置备份 / 恢复 / 批量重设 ---------- */
+  document.getElementById('cfgExport').onclick=function(){
+    var t=JSON.stringify(cfg), ta=document.getElementById('cfgBox');
+    if(ta) ta.value=t;
+    if(NATIVE){ try{ GameBridge.copyText(t); }catch(e){} toast('配置已复制，粘到备忘录或发给自己就行'); }
+    else if(ta){ ta.focus(); ta.select(); }
+  };
+  document.getElementById('cfgImport').onclick=function(){
+    var ta=document.getElementById('cfgBox'), rawTxt=ta?ta.value.trim():'';
+    if(!rawTxt){ toast('先把配置文字粘贴到上面的框里'); return; }
+    var c=null; try{ c=JSON.parse(rawTxt); }catch(e){ toast('这段文字不是有效配置，检查有没有复制全'); return; }
+    if(!c || !(c.managedApps instanceof Array)){ toast('配置里没有应用清单，已取消'); return; }
+    askConfirm('恢复配置','会用粘贴的配置覆盖当前设置（'+c.managedApps.length+' 个受管应用）。恢复后立刻生效。',function(){
+      lsSet(CFG_KEY, rawTxt);
+      cfg=loadCfg(); saveCfg(); pushManaged();
+      if(NATIVE && cfg.password){ try{ GameBridge.setParentPassword(cfg.password); }catch(e){} }
+      bindQuotaSettings(); bindPolicyRadios(); renderAppList(); renderOverview(); renderStats();
+      renderWeek(true); renderRequests(); renderKidReqBar(); refreshPermStates(); refreshGuardBar();
+      toast('配置已恢复，共 '+cfg.managedApps.length+' 个应用');
+    });
+  };
+  document.getElementById('resetApply').onclick=function(){
+    var v=parseInt(document.getElementById('resetLimit').value,10);
+    if(isNaN(v)||v<1){ toast('分钟数要大于 0'); return; }
+    if(cfg.managedApps.length===0){ toast('还没有勾选任何应用'); return; }
+    askConfirm('统一重设','会把 '+cfg.managedApps.length+' 个应用的工作日/周末额度都改成 '+v+' 分/天。今天的加时不受影响。',function(){
+      cfg.managedApps.forEach(function(a){ a.limit=v; a.limitWe=v; });
+      saveCfg(); pushManaged(); renderAppList(); renderOverview(); renderStats(); renderWeek(true); refreshGuardBar();
+      toast('已全部重设为 '+v+' 分/天');
+    });
+  };
+
+  /* ---------- 功能 5：额度模板 ---------- */
+  var TPL={strict:[20,40],normal:[30,60],loose:[45,90]};
+  document.querySelector('.tplrow').addEventListener('click',function(e){
+    var b=evBtn(e,'data-tpl'); if(!b) return;
+    var t=TPL[b.getAttribute('data-tpl')]; if(!t) return;
+    if(cfg.managedApps.length===0){ toast('先在「应用」页勾选应用'); return; }
+    askConfirm('套用额度模板','把所有受管应用改成：工作日 '+t[0]+' 分 / 周末 '+t[1]+' 分，并打开「分开设」。会覆盖现在的分钟数。',function(){
+      cfg.weekendSplit=true;
+      cfg.managedApps.forEach(function(a){ a.limit=t[0]; a.limitWe=t[1]; });
+      saveCfg(); pushManaged(); bindQuotaSettings(); renderAppList(); renderOverview(); renderStats(); renderWeek(true); refreshGuardBar();
+      toast('已套用：工作日 '+t[0]+' 分 / 周末 '+t[1]+' 分');
+    });
+  });
+
   /* ---------- 工具 ---------- */
   function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 
   /* ---------- 轮询刷新（真实用量） ---------- */
   setInterval(function(){
-    if(!document.getElementById('childView').classList.contains('hidden')) renderKid();
+    if(!document.getElementById('childView').classList.contains('hidden')){ renderKid(); renderKidReqBar(); }
     if(document.getElementById('parentView') && !document.getElementById('parentView').classList.contains('hidden')){
       var ap=document.querySelector('#parentView .tab.active');
-      if(ap){ var p=ap.dataset.page; if(p==='overview'){ renderOverview(); renderRank(); } if(p==='stats') renderStats(); if(p==='apps') renderAppList(); if(p==='me') diagRun(); }
+      if(ap){ var p=ap.dataset.page; if(p==='overview'){ renderOverview(); renderRank(); renderRequests(); } if(p==='stats') renderStats(); if(p==='apps') renderAppList(); if(p==='me') diagRun(); }
       refreshPermStates();
     }
     refreshBanners(); refreshGuardBar();
@@ -1727,8 +2246,8 @@
     try{
       hideLock();
       refreshBanners(); refreshPermStates(); refreshGuardBar();
-      if(mode==='child'){ renderKid(); }
-      else { renderOverview(); renderRank(); renderStats(); renderAudit(); }
+      if(mode==='child'){ renderKid(); renderKidReqBar(); }
+      else { renderOverview(); renderRank(); renderStats(); renderAudit(); renderRequests(); renderWeek(false); }
       pushManaged();
     }catch(e){}
   };
@@ -1744,6 +2263,7 @@
     try{ showChild(); }catch(e2){ try{ showParent(); }catch(e3){} }
   }
   renderGuide(); refreshBanners(); refreshGuardBar(); renderVerLine(); renderFocus(true);
+  try{ renderRequests(); renderKidReqBar(); }catch(e){}
 })();
 </script>
 </body>
