@@ -229,10 +229,11 @@ WebView 的渲染进程是独立进程。内存紧张、或厂商 ROM 清理后�
 
 | 检查项 | 结果 |
 |---|---|
-| CI | 待构建（出包后补 run id / commit / 字节数 / sha256） |
-| 产物 | `KidTime-v3.6-11.apk` · 下载页徽标必须为 `v3.6 (11)` |
-| 包内 | `assets/index.html` 必须含 v3.6 标记：`ME_KEEP` 白名单、`quickBonusMin`、`reqTabDot`、`kidDate`、`bonusApply`、`pauseCard` |
-| 签名 | 固定 `gm-release.jks`，与 v3.5 (10) 同证书，**可直接覆盖安装，不必卸载** |
+| CI | run `42031755948` · build ✅ · pages ✅ · 远端 commit `dc8ab1e9ff577f748335f4827df673ef371b0b21` · Release `v1.0.11` |
+| 产物 | `KidTime-v3.6-11.apk` · **2,133,779 字节** · sha256 `559a61bd9d83ab184dd16419b16a65be691f3fa7e7bdc968d4e40d60202ba778` · 下载页徽标 `v3.6 (11)`，页面 SHA256 与实际包一致 |
+| 包内 | `assets/index.html` 141,016 字节；18 个 v3.6 标记全在位、无「不升版」过时说明；DOM 146 ids / 128 refs / 0 缺失、38 桥接调用 / 49 Kotlin `fun` / 0 缺失、原生对话框残留 0、CSS 353/353、div 227/227 |
+| 签名 | 固定 `gm-release.jks`（899 字节证书 DER 在 APK 偏移 `2120208` 逐字节命中），与 v3.5 (10) 同证书，**可直接覆盖安装，不必卸载** |
+| 下载页 | 主按钮指向 `KidTime-v3.6-11.apk`，无 `v3.5-10` / `v3.4-8` 旧链接；HTML meta 带 `no-store` |
 | 边界 | 只改 `index.html` + `build.gradle` 版本号 + 文档；Kotlin / Manifest / 权限清单不变 |
 
 ### v3.5 (10) 产物核验（历史版本）
