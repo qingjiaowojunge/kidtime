@@ -210,10 +210,12 @@ WebView 的渲染进程是独立进程。内存紧张、或厂商 ROM 清理后�
 
 | 检查项 | 结果 |
 |---|---|
-| CI | 待构建（出包后补 run id / commit / 字节数 / sha256） |
-| 产物 | `KidTime-v3.5-10.apk` · 下载页徽标必须为 `v3.5 (10)` |
-| 门禁修复 | 包内 `index.html` 必须含 `if(!m) return;`、`if(!c.password) c.password='1234';`、`setManagedApps → startMonitorInternal` 注释 |
-| 签名 | 固定 `gm-release.jks`，与 v3.5 (9) 同证书，**可直接覆盖安装，不必卸载** |
+| CI | run `42024056242` · build ✅ · pages ✅ · 远端 commit `addcb3d5628defbf316f1ca5e0ac0e6959de35ff` |
+| 产物 | `KidTime-v3.5-10.apk` · **2,130,067 字节** · sha256 `baa1e2959b9d4d7fb07d8b1ff7e17ac10898655f729090c9060fd139238a1550` · 下载页徽标 `v3.5 (10)`，页面 SHA256 与实际包一致 |
+| 门禁修复 | 包内 `assets/index.html` 已逐项核实：`if(!m) return;`、`if(!c.password) c.password='1234';`、`setManagedApps → startMonitorInternal` 注释，**3/3 在位** |
+| 包内 | `assets/index.html` 129,518 字节；22 个 v3.5 新功能标记 + 12 个原有功能标记全在位；`confirm/alert/prompt` 残留 0；DOM id 127 / refs 115 / missing 0；前端 38 个 `GameBridge.*` 调用在 Kotlin 49 个 `fun` 中零缺失 |
+| 签名 | 固定 `gm-release.jks`（899 字节证书 DER 在 APK 偏移 `2116496` 逐字节命中），与 v3.5 (9) 同证书，**可直接覆盖安装，不必卸载** |
+| 下载页 | 主按钮指向 `KidTime-v3.5-10.apk`，无 `v3.5-9` / `v3.4-8` / `v3.3-7` 旧包链接；HTML meta 带 `no-store` |
 | 边界 | 只改 `index.html` + `build.gradle` 版本号；Kotlin / Manifest / 权限清单不变 |
 
 ### v3.4 (8) 产物核验（历史版本）
